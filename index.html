@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <title>Fix That Office</title>
 <link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fix That Office">
+<meta name="theme-color" content="#1F4575">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -624,8 +629,9 @@ function workCard(j,q){if(!q||!q.id)return "";const lines=q.lines||[];const t=qT
   </tbody></table></div>
   <div class="row" style="margin-top:10px"><button class="btn small primary" data-act="jlAdd">+ Add work on site</button>${changed?`<button class="btn small" data-act="copyText" data-src="chgMsg">Copy change summary</button><button class="btn small" data-act="emailChange">Email change summary</button>`:""}</div>
   ${changed?`<details style="margin-top:10px"><summary class="small" style="cursor:pointer;font-weight:600">Change summary for the customer and the change log (${q.changes.length})</summary><div class="msg" id="chgMsg" style="margin-top:6px">${esc(changeText(j,q))}</div><ul class="small" style="margin:8px 0 0 18px">${q.changes.slice().reverse().map(c=>`<li>${new Date(c.at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}: ${esc(c.text)}</li>`).join("")}</ul></details>`:""}
-  ${changed&&q.changeApproval&&q.changeApproval.status==="pending"?`<div class="banner" style="margin:10px 0 0;background:var(--warn-soft);color:var(--warn);border-color:transparent"><b>Waiting for the customer to approve these changes.</b> Send the change summary, then record their okay here. Don't charge the new balance until they approve.
-    <div class="row" style="margin-top:8px"><select id="apprHow" style="width:auto">${opts(["Replied APPROVE by text","Replied by email","Signed on site","Said yes in person or by phone"],"")}</select><button class="btn small good" data-act="chgApprove">Customer approved</button></div></div>`:changed&&q.changeApproval&&q.changeApproval.status==="approved"?`<p class="small" style="color:var(--good);font-weight:600;margin-top:8px">✓ Customer approved these changes ${fmtT(q.changeApproval.at)} (${esc(q.changeApproval.method||"")}).</p>`:""}
+  ${changed&&q.changeApproval&&q.changeApproval.status==="pending"?`<div class="banner" style="margin:10px 0 0;background:var(--warn-soft);color:var(--warn);border-color:transparent"><b>Customer needs to approve these changes.</b> If they're there with Seth, have them sign on his phone right now. Otherwise send the change summary and record their okay.
+    <div class="row" style="margin-top:8px"><button class="btn small primary" data-act="chgSignOpen">Customer signs on this phone</button></div>
+    <div class="row" style="margin-top:8px"><select id="apprHow" style="width:auto">${opts(["Replied APPROVE by text","Replied by email","Signed on site","Said yes in person or by phone"],"")}</select><button class="btn small good" data-act="chgApprove">Customer approved</button></div></div>`:changed&&q.changeApproval&&q.changeApproval.status==="approved"?`<p class="small" style="color:var(--good);font-weight:600;margin-top:8px">✓ Customer approved these changes ${fmtT(q.changeApproval.at)} (${esc(q.changeApproval.method||"")}${q.changeApproval.name?", "+esc(q.changeApproval.name):""}).</p>${q.changeApproval.sig?`<img src="${esc(q.changeApproval.sig)}" alt="Customer signature approving changes" style="max-width:260px;width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;margin-top:4px">`:""}`:""}
   ${j.invoiced&&changed?`<p class="small" style="color:var(--bad);font-weight:600;margin-top:8px">This job was already invoiced. Update the invoice in QuickBooks to ${money2(t.price)}.</p>`:""}</div>`}
 /* ---------- Week at a glance (dashboard) ---------- */
 const hStr=h=>String(Math.floor(h)).padStart(2,"0")+":"+(h%1?String(Math.round(h%1*60)).padStart(2,"0"):"00");
@@ -868,7 +874,8 @@ function vQuote(){
   const lines=q.lines||[];const mats=(q.internal&&q.internal.materials)||[];
   return head(custName(c),`<button data-act="go" data-view="pipeline">Quotes</button> / Quote ${esc(qNo(q))}`,`${statusPill}<span class="savestate" id="savestate">${S.dirty?"Saving…":"All changes saved"}</span>`)
   +(c.doNotContact?`<div class="banner" style="background:var(--bad-soft);color:var(--bad);border-color:transparent">Do not contact: ${esc(c.dncNote||"see customer record")}</div>`:"")
-  +`<div class="row" style="margin-bottom:14px">${actions}<button class="btn" data-act="dupQuote">Duplicate</button><button class="btn" data-act="tplOpen">Save as template</button><button class="btn" data-act="go" data-view="customer" data-id="${esc(q.customerId)}">Customer record</button><button class="btn bad" data-act="delQuote">Delete</button></div>`
+  +(q.signed?`<div class="banner" style="background:var(--good-soft,#E3F4EA);color:var(--good);border-color:transparent"><span class="spread"><span>✓ <b>Signed by ${esc(q.signed.name)}</b> on ${new Date(+q.signed.at).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"})}${q.signed.total!=null&&Math.abs(+q.signed.total-qTotals(q).price)>0.01?` · <b style="color:var(--bad)">quote changed since signing (signed at ${money2(+q.signed.total)})</b>`:""}</span>${window.__sb?`<button class="btn small" data-act="viewSig">View signature</button>`:""}</span></div>`:"")
+  +`<div class="row" style="margin-bottom:14px">${actions}${window.__sb&&(q.status==="lead"||q.status==="sent")&&!q.signed?`<button class="btn navy" data-act="signLink">Send for signature</button>`:""}<button class="btn" data-act="dupQuote">Duplicate</button><button class="btn" data-act="tplOpen">Save as template</button><button class="btn" data-act="go" data-view="customer" data-id="${esc(q.customerId)}">Customer record</button><button class="btn bad" data-act="delQuote">Delete</button></div>`
   +(q.status==="lost"?`<div class="card" style="margin-bottom:14px"><h2>Why it was lost</h2><p class="small muted" style="margin-bottom:8px">Check everything that applies.</p><div class="row" style="gap:8px 18px;margin-bottom:12px">${(S.settings.lostReasons||DEFAULTS.lostReasons).concat(lostList(q).filter(x=>!(S.settings.lostReasons||DEFAULTS.lostReasons).includes(x))).map(r=>`<label class="row small" style="font-weight:600"><input type="checkbox" data-act="lostTog" data-r="${esc(r)}"${lostList(q).includes(r)?" checked":""}> ${esc(r)}</label>`).join("")}</div><label class="f" style="margin-bottom:12px"><span>Other reason (in their words)</span><input type="text" data-bind="lostOther" value="${esc(q.lostOther||"")}" placeholder="Anything not on the list. Reports will flag it if it keeps coming up."></label><div class="grid3"><label class="f"><span>Follow-up</span><select data-bind="followUp">${opts(["none","scheduled","done"].map(x=>x),q.followUp||"none")}</select></label><label class="f"><span>Lost on</span><input type="text" value="${fmtT(q.decidedAt)}" disabled></label></div>${(!q.followUp||q.followUp==="none")?`<p class="small" style="color:var(--bad);margin-top:8px;font-weight:600">No follow-up yet. A short check-in wins some of these back.</p>`:""}</div>`:"")
   +`<div class="cols"><div class="stack"><div class="card">
     <div class="grid3" style="margin-bottom:12px">
@@ -1509,6 +1516,7 @@ function vSettings(){
   return head("Settings")+`<div class="cols"><div class="stack"><div class="card"><h2>Business</h2><div class="grid2">
     <label class="f"><span>Business name (used in messages)</span><input type="text" id="set-company" value="${esc(s.company)}"></label>
     <label class="f"><span>Office phone (used in messages)</span><input type="tel" id="set-phone" value="${esc(s.phone)}"></label>
+    <label class="f"><span>Contractor license # (shown on quotes)</span><input type="text" id="set-license" value="${esc(s.license||"")}" placeholder="Add once the B100 is issued"></label>
     <label class="f"><span>Labor cost per hour (for margins)</span><input type="number" min="0" id="set-rate" value="${esc(s.laborRate)}"></label>
     <label class="f"><span>Default deposit %</span><input type="number" min="0" max="100" id="set-dep" value="${esc(s.defaultDeposit)}"></label>
   </div><label class="f" style="margin-top:12px"><span>Google review link</span><input type="url" id="set-review" value="${esc(s.reviewLink)}" placeholder="https://g.page/r/…/review"></label>
@@ -1607,6 +1615,21 @@ const ACT={
     const subj={deposit:`Deposit received – ${S.settings.company}`,full:`Paid in full${j.invoiceNo?" – Invoice "+j.invoiceNo:""} – thank you from ${S.settings.company}`,reminder:`Reminder: we'll see you ${fmtD(j.scheduledDate)}`}[d.kind];
     emailModal(c,subj,payText(d.kind,j),null)},
   sentFromModal(){$("#modal").hidden=true;const c=S.customers[S.draft.customerId];if(c){const n=clone(c);n.log=(n.log||[]).concat([{t:Date.now(),text:"Quote emailed"+(S.draft.jobType?" ("+S.draft.jobType+")":"")}]);put("customers",n.id,n,{quiet:true})}ACT.markSent()},
+  async signLink(){flush();const q=S.draft;const c=S.customers[q.customerId]||{};if(!qTotals(q).price){toast("Add prices before sending for signature.");return}
+    const {data,error}=await window.__sb.from("quote_links").insert({quote_id:q.id}).select("token").single();
+    if(error||!data){toast("Couldn't create the link: "+((error&&error.message)||"try again"));return}
+    const url=location.origin+location.pathname.replace(/[^/]*$/,"")+"sign.html?t="+data.token;
+    const msg=`Hi ${firstName(c)}, here's your quote${q.quoteNo?" ("+q.quoteNo+")":""} from ${S.settings.company}. You can review it and sign here: ${url}\n\nQuestions? Call ${S.settings.phone}. Thank you!`;
+    if(q.status==="lead")statusChange({status:"sent",sentAt:Date.now()});
+    emailModal(c,`Your quote from ${S.settings.company}${q.quoteNo?" – "+q.quoteNo:""}`,msg,null);
+    const box=document.querySelector("#modal .box");if(box){const d=document.createElement("div");d.innerHTML=`<label class="f"><span>Signing link (copy it into a text if you'd rather text it)</span><input type="text" readonly value="${esc(url)}" onclick="this.select()"></label>${c.phone?`<a class="btn" href="sms:${esc(digits(c.phone))}?&body=${encodeURIComponent(msg)}">Open in text app</a>`:""}`;box.insertBefore(d,box.querySelector(".row"))}},
+  async viewSig(){const q=S.draft;const id=q.signed&&q.signed.signatureId;if(!id||!window.__sb)return;const {data,error}=await window.__sb.from("signatures").select("*").eq("id",id).single();if(error||!data){toast("Couldn't load the signature.");return}
+    const m=$("#modal");m.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-label="Signature"><h2 style="font-size:24px;text-transform:uppercase">Signature record</h2>
+      <img src="${esc(data.signature_png)}" alt="Signature" style="width:100%;max-width:520px;border:1px solid var(--line);border-radius:8px;background:#fff">
+      <p><b>${esc(data.signed_name)}</b> · ${new Date(data.signed_at).toLocaleString("en-US",{dateStyle:"long",timeStyle:"long"})}</p>
+      <p class="small">Total signed: <b>${money2(+data.total)}</b> · Deposit: <b>${money2(+data.deposit)}</b> · Agreed to terms: <b>${data.agreed_terms?"Yes":"No"}</b><br>IP: ${esc(data.ip||"—")} · Device: ${esc(data.user_agent||"—")}</p>
+      <details><summary class="small" style="cursor:pointer;font-weight:600">Terms they agreed to</summary><div class="msg" style="margin-top:6px;white-space:pre-wrap">${esc(data.terms_text||"(none)")}</div></details>
+      <div class="row" style="margin-top:12px"><button class="btn" data-act="closeModal">Close</button></div></div>`;m.hidden=false},
   markCalled(){statusChange({calledAt:Date.now()});toast("Follow-up call recorded")},
   wbMark(){const L=winbackList().filter(x=>x.ok);const now=Date.now();L.forEach(x=>{const c=clone(x.c);c.winbackAt=now;c.log=(c.log||[]).concat([{t:now,text:"Win-back text sent"}]);put("customers",c.id,c,{quiet:true})});saveSettings(Object.assign({},S.settings,{winbackRunAt:now}));toast(L.length+" marked as texted")},
   async wbExport(){const L=winbackList().filter(x=>x.ok);const rows=[["First Name","Last Name","Phone","Email","Last Job","Last Job Date","Months Since"]].concat(L.map(x=>[x.c.first||"",x.c.last||"",x.c.phone||"",x.c.email||"",x.q.jobType||"",x.j.completedAt,x.months]));
@@ -1644,6 +1667,24 @@ const ACT={
   jlRemove(d){const j=S.draft;const l=(S.quotes[j.quoteId].lines||[])[+d.i];if(!l)return;
     editJobQuote(j,q=>{const x=q.lines[+d.i];if(x.added)q.lines.splice(+d.i,1);else{x.removed=true;x.removedAt=Date.now()}},`Removed: ${l.desc||"item"} (${money2((+l.qty||0)*(+l.price||0))})`)},
   jlRestore(d){const j=S.draft;const l=(S.quotes[j.quoteId].lines||[])[+d.i];editJobQuote(j,q=>{delete q.lines[+d.i].removed;delete q.lines[+d.i].removedAt},`Put back: ${l.desc||"item"}`)},
+  chgSignOpen(){const j=S.draft;const q=S.quotes[j.quoteId];const c=S.customers[j.customerId]||{};const t=qTotals(q);const o=q.original;
+    const m=$("#modal");m.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-label="Approve changes"><h2 style="font-size:24px;text-transform:uppercase">Approve changes to your job</h2>
+      <div class="msg" style="max-height:240px;overflow:auto">${esc(changeText(j,q).split("\n").filter(x=>!/^(Hi |Please reply|If you have|Thank you)/.test(x)).join("\n").trim())}</div>
+      <label class="f" style="margin-top:10px"><span>Your full name</span><input type="text" id="csName" value="${esc([c.first,c.last].filter(Boolean).join(" "))}"></label>
+      <div class="small" style="font-weight:700;margin:10px 0 4px">Sign with your finger</div>
+      <canvas id="csPad" style="width:100%;height:160px;border:2px dashed var(--mid);border-radius:8px;background:#fff;touch-action:none;display:block"></canvas>
+      <button class="linkish small" data-act="csClear">Clear</button>
+      <label class="row small" style="margin-top:8px;align-items:flex-start;gap:8px;flex-wrap:nowrap"><input type="checkbox" id="csAgree" style="margin-top:3px"> <span>I approve these changes. The new total is <b>${money2(t.price)}</b>${o?" (was "+money2(o.price)+")":""}.</span></label>
+      <div class="row" style="margin-top:12px"><button class="btn primary" data-act="chgSignSave">Approve &amp; sign</button><button class="btn" data-act="closeModal">Cancel</button></div></div>`;m.hidden=false;
+    const cv=$("#csPad"),r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;const ctx=cv.getContext("2d");ctx.scale(d,d);ctx.lineWidth=2.4;ctx.lineCap="round";ctx.strokeStyle="#15233A";
+    let dr=false,last=null;cv._inked=false;const pt=e=>{const b=cv.getBoundingClientRect();return {x:e.clientX-b.left,y:e.clientY-b.top}};
+    cv.onpointerdown=e=>{dr=true;last=pt(e);cv.setPointerCapture(e.pointerId)};cv.onpointermove=e=>{if(!dr)return;const p=pt(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;cv._inked=true};cv.onpointerup=cv.onpointercancel=()=>dr=false},
+  csClear(){const cv=$("#csPad");if(!cv)return;cv.getContext("2d").clearRect(0,0,cv.width,cv.height);cv._inked=false},
+  chgSignSave(){const cv=$("#csPad");const name=(($("#csName")||{}).value||"").trim();if(name.length<3){toast("Type the customer's full name.");return}if(!cv||!cv._inked){toast("The customer needs to sign in the box.");return}if(!($("#csAgree")||{}).checked){toast("Check the box to approve.");return}
+    const out=document.createElement("canvas");out.width=cv.width;out.height=cv.height;const o=out.getContext("2d");o.fillStyle="#fff";o.fillRect(0,0,out.width,out.height);o.drawImage(cv,0,0);
+    const j=S.draft;const src=S.quotes[j.quoteId];if(!src)return;const q=clone(src);const t=qTotals(q);
+    q.changeApproval={status:"approved",at:Date.now(),method:"Signed on site on Seth's phone",name,sig:out.toDataURL("image/png"),total:t.price};
+    q.changes=(q.changes||[]).concat([{at:Date.now(),text:`${name} approved the changes and signed on site (new total ${money2(t.price)})`}]);q.updatedAt=Date.now();put("quotes",q.id,q);$("#modal").hidden=true;toast("Approved and signed")},
   chgApprove(){const j=S.draft;const how=($("#apprHow")||{}).value||"Approved";const src=S.quotes[j.quoteId];if(!src)return;const q=clone(src);q.changeApproval={status:"approved",at:Date.now(),method:how};q.changes=(q.changes||[]).concat([{at:Date.now(),text:"Customer approved the changes: "+how}]);q.updatedAt=Date.now();put("quotes",q.id,q);toast("Approval recorded")},
   emailChange(){flush();const j=S.draft;const q=S.quotes[j.quoteId];const c=S.customers[j.customerId]||{};emailModal(c,`Changes to your job (Job ${jNo(j)}) – ${S.settings.company}`,changeText(j,q),null)},
   wkNav(d){S.ui.wk=+d.n===0?0:(S.ui.wk||0)+(+d.n);render()},
@@ -1812,7 +1853,7 @@ const ACT={
   },
   addCheckMat(d){const x=S.draft.review.data.costChecks[+d.i];S.draft.internal=S.draft.internal||{};S.draft.internal.materials=S.draft.internal.materials||[];S.draft.internal.materials.push({item:x.item,vendor:"",link:"",cost:x.estCost||"",ordered:false,eta:""});S.draft.noMaterials=false;touch();render();toast("Added to materials. Check the real cost.")},
   addCheckLine(d){const x=S.draft.review.data[d.k][+d.i];if(S.draft.mode==="flat"){toast("Switch to line items to add this as its own line.");return}S.draft.lines=S.draft.lines||[];S.draft.lines.push({desc:x.item,qty:1,price:(x.price||x.estCost||"")});touch();render();toast("Line added. Set the real price.")},
-  saveSettings(){const L=id=>$("#"+id).value.split("\n").map(x=>x.trim()).filter(Boolean);saveSettings({company:$("#set-company").value.trim()||DEFAULTS.company,phone:$("#set-phone").value.trim(),laborRate:+$("#set-rate").value||0,defaultDeposit:+$("#set-dep").value||50,reviewLink:$("#set-review").value.trim(),terms:$("#set-terms").value.trim(),jobTypes:L("set-types"),sources:L("set-sources"),vendors:L("set-vendors"),lostReasons:L("set-lost"),expenseCats:L("set-expcats"),requireChangeApproval:!!($("#set-rca")||{}).checked,winbackMonths:Math.max(1,+($("#set-wb")||{}).value||5),followUpDays:Math.max(1,+($("#set-fu")||{}).value||5),dayStart:($("#set-ds")||{}).value||"08:00",dayEnd:($("#set-de")||{}).value||"17:00",visitHrs:+($("#set-vh")||{}).value||1,trendCount:Math.max(2,+($("#set-tc")||{}).value||2),trendDays:Math.max(7,+($("#set-td")||{}).value||90)});toast("Settings saved")},
+  saveSettings(){const L=id=>$("#"+id).value.split("\n").map(x=>x.trim()).filter(Boolean);saveSettings({license:(($("#set-license")||{}).value||"").trim(),company:$("#set-company").value.trim()||DEFAULTS.company,phone:$("#set-phone").value.trim(),laborRate:+$("#set-rate").value||0,defaultDeposit:+$("#set-dep").value||50,reviewLink:$("#set-review").value.trim(),terms:$("#set-terms").value.trim(),jobTypes:L("set-types"),sources:L("set-sources"),vendors:L("set-vendors"),lostReasons:L("set-lost"),expenseCats:L("set-expcats"),requireChangeApproval:!!($("#set-rca")||{}).checked,winbackMonths:Math.max(1,+($("#set-wb")||{}).value||5),followUpDays:Math.max(1,+($("#set-fu")||{}).value||5),dayStart:($("#set-ds")||{}).value||"08:00",dayEnd:($("#set-de")||{}).value||"17:00",visitHrs:+($("#set-vh")||{}).value||1,trendCount:Math.max(2,+($("#set-tc")||{}).value||2),trendDays:Math.max(7,+($("#set-td")||{}).value||90)});toast("Settings saved")},
   loadSamples(){loadSamples()},
   clearSamples(){confirmBox("Remove all example customers, leads, quotes and jobs? Your own records stay.",()=>{["jobs","quotes","leads","expenses","customers"].forEach(k=>vals(S[k]).filter(x=>x.sample).forEach(x=>remove(k,x.id)));toast("Example data removed")},"Remove")},
   modalCopy(){const t=$("#copyArea");t.focus();t.select();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.value).then(()=>toast("Copied"),()=>toast("Press Ctrl+C (or ⌘C) to copy"));else toast("Press Ctrl+C (or ⌘C) to copy")},
@@ -1824,6 +1865,7 @@ function confirmBox(text,fn,yes){confirmBox._f=fn;const m=$("#modal");m.innerHTM
 /* ---------- Events ---------- */
 document.addEventListener("click",e=>{
   if(e.target.closest&&e.target.closest("a[href]"))return;
+  if(e.target.id==="csPad")return;
   const a=e.target.closest("[data-act]");if(!a)return;
   if(a.tagName==="INPUT"&&a.type==="checkbox"){const f=ACT[a.dataset.act];if(f)f(a.dataset,a,e);return}
   const f=ACT[a.dataset.act];if(!f)return;

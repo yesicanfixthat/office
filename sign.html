@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your Quote · Yes, I Can Fix That</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+:root{--navy:#1F4575;--orange:#F36A22;--mid:#36649D;--sage:#CEDBD7;--ink:#15233A;--muted:#5A6576;--line:#DCE2EA;--bg:#F2F4F8;--surface:#fff;--good:#1E7B4A;--bad:#B42318}
+@media (prefers-color-scheme: dark){:root{--ink:#E8EEF6;--muted:#A7B3C3;--line:#2B3A52;--bg:#0F1826;--surface:#16223A;--good:#4CC38A;--bad:#F2877D}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+header img{height:56px;width:auto;background:#fff;border-radius:8px;padding:6px 10px}
+header .who{text-align:right;font-size:14px;color:var(--muted)}
+h1,h2{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px;color:var(--ink)}
+h1{font-size:34px}h2{font-size:22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.meta b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding:6px 4px}
+td{padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.r{text-align:right;white-space:nowrap}.n{color:var(--muted);width:28px}
+.tot td{border:0;padding-top:10px;font-size:17px}
+.tot .big{font-weight:700;font-size:20px}
+.dep{background:var(--sage);color:#15233A;border-radius:8px;padding:10px 12px;margin-top:10px;font-weight:700;display:flex;justify-content:space-between}
+.terms{white-space:pre-wrap;font-size:14px;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg)}
+label.f{display:block;font-weight:700;font-size:14px;margin:12px 0 6px}
+input[type=text]{width:100%;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.pad{position:relative;border:2px dashed var(--mid);border-radius:10px;background:#fff;touch-action:none}
+.pad canvas{display:block;width:100%;height:180px;border-radius:10px}
+.pad .hint{position:absolute;left:12px;bottom:8px;font-size:13px;color:#8a95a5;pointer-events:none}
+.clear{background:none;border:0;color:var(--mid);text-decoration:underline;cursor:pointer;font-size:14px;padding:6px 0}
+.agree{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:15px}
+.agree input{width:22px;height:22px;margin-top:2px;flex:none}
+.btn{display:block;width:100%;border:0;border-radius:10px;padding:14px;font-size:18px;font-weight:700;cursor:pointer;background:var(--orange);color:#fff;margin-top:16px}
+.btn[disabled]{opacity:.5;cursor:default}
+.err{color:var(--bad);font-weight:700;margin-top:10px}
+.ok{border-color:var(--good)}
+.ok h2{color:var(--good)}
+.small{font-size:13px;color:var(--muted)}
+.center{text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="card center">Loading your quote…</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  const sb=window.supabase.createClient("https://yhcinsqiqernsqussjgb.supabase.co","sb_publishable_CGRtG8cY_M8vEnnJOSX_Cg_z3jUVkCD",{auth:{persistSession:false}});
+  const token=new URLSearchParams(location.search).get("t")||"";
+  const app=document.getElementById("app");
+  const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const money=n=>(+n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
+  let Q=null;
+  function header(q){const b=q&&q.business||{};return `<header><img src="logo.png" alt="Yes, I Can Fix That"><div class="who">${esc(b.phone||"(801) 917-4442")}${b.license?`<br>License #${esc(b.license)}`:""}</div></header>`}
+  function fail(msg){app.innerHTML=header(Q)+`<div class="card center"><h2>Sorry</h2><p>${esc(msg)}</p><p><a href="tel:8019174442">Call (801) 917-4442</a></p></div>`}
+  function signedView(q,s){app.innerHTML=header(q)+`<div class="card ok center"><h2>✓ Quote accepted</h2><p>Thank you${q.customer&&q.customer.first?", "+esc(q.customer.first):""}! ${s&&s.name?"Signed by <b>"+esc(s.name)+"</b>":""}${s&&s.at?" on "+new Date(+s.at).toLocaleString("en-US",{dateStyle:"long",timeStyle:"short"}):""}.</p>
+    <p>Your deposit to get on the schedule is <b>${money(q.deposit)}</b>. We'll send you a secure link to pay it${q.business&&q.business.phone?", or call "+esc(q.business.phone)+" with any questions":""}.</p></div>`+quoteCard(q)}
+  function quoteCard(q){const c=q.customer||{},p=q.property||{};
+    return `<div class="card"><h1>Quote ${esc(q.quoteNo||"")}</h1>
+      <div class="meta"><span>For <b>${esc([c.first,c.last].filter(Boolean).join(" ")||c.company||"")}</b></span>${p.address?`<span>At <b>${esc(p.address)}${p.town?", "+esc(p.town):""}${p.zip?" "+esc(p.zip):""}</b></span>`:""}${q.jobType?`<span>${esc(q.jobType)}</span>`:""}</div>
+      <table style="margin-top:12px"><thead><tr><th class="n">#</th><th>Work</th><th class="r">Amount</th></tr></thead><tbody>
+      ${(q.lines||[]).map((l,i)=>`<tr><td class="n">${i+1}</td><td>${esc(l.desc||"")}${(+l.qty||1)!==1?`<div class="small">${+l.qty} × ${money(l.price)}</div>`:""}</td><td class="r">${money((+l.qty||0)*(+l.price||0))}</td></tr>`).join("")}
+      </tbody><tbody class="tot"><tr><td></td><td class="r">Total</td><td class="r big">${money(q.total)}</td></tr></tbody></table>
+      <div class="dep"><span>Deposit to schedule (${+q.depositPct||50}%)</span><span>${money(q.deposit)}</span></div>
+      ${q.customerNotes?`<p style="margin-top:12px;white-space:pre-wrap">${esc(q.customerNotes)}</p>`:""}</div>`}
+  function render(q){
+    app.innerHTML=header(q)+quoteCard(q)+`
+    <div class="card"><h2>Terms &amp; conditions</h2>${q.terms?`<div class="terms">${esc(q.terms)}</div>`:`<p class="small">No additional terms.</p>`}</div>
+    <div class="card"><h2>Accept this quote</h2>
+      <label class="f" for="nm">Type your full name</label><input type="text" id="nm" autocomplete="name" value="${esc([q.customer&&q.customer.first,q.customer&&q.customer.last].filter(Boolean).join(" "))}">
+      <label class="f">Sign with your finger or mouse</label>
+      <div class="pad"><canvas id="cv"></canvas><span class="hint" id="hint">Sign here</span></div><button class="clear" id="clr" type="button">Clear signature</button>
+      <label class="agree"><input type="checkbox" id="ag"><span>I have read and agree to this quote and the terms &amp; conditions above. I understand that typing my name and signing is my electronic signature.</span></label>
+      <button class="btn" id="go" type="button">Accept &amp; sign</button><div class="err" id="er" role="alert"></div>
+      <p class="small" style="margin-top:10px">We record the date, time and device when you sign, along with a copy of this quote.</p></div>`;
+    const cv=document.getElementById("cv"),ctx=cv.getContext("2d");let drawing=false,inked=false,last=null;
+    function size(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;const img=inked?cv.toDataURL():null;cv.width=r.width*d;cv.height=r.height*d;ctx.scale(d,d);ctx.lineWidth=2.4;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#15233A";if(img){const i=new Image();i.onload=()=>ctx.drawImage(i,0,0,r.width,r.height);i.src=img}}
+    size();window.addEventListener("resize",size);
+    const pt=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
+    cv.addEventListener("pointerdown",e=>{drawing=true;last=pt(e);cv.setPointerCapture(e.pointerId);document.getElementById("hint").style.display="none"});
+    cv.addEventListener("pointermove",e=>{if(!drawing)return;const p=pt(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;inked=true});
+    ["pointerup","pointercancel","pointerleave"].forEach(ev=>cv.addEventListener(ev,()=>drawing=false));
+    document.getElementById("clr").onclick=()=>{ctx.clearRect(0,0,cv.width,cv.height);inked=false;document.getElementById("hint").style.display=""};
+    document.getElementById("go").onclick=async()=>{const er=document.getElementById("er");er.textContent="";
+      const name=document.getElementById("nm").value.trim(),ag=document.getElementById("ag").checked;
+      if(name.length<3){er.textContent="Please type your full name.";return}
+      if(!inked){er.textContent="Please sign in the box.";return}
+      if(!ag){er.textContent="Please check the box to agree to the terms.";return}
+      const btn=document.getElementById("go");btn.disabled=true;btn.textContent="Saving…";
+      // white background so the signature image is readable anywhere
+      const out=document.createElement("canvas");out.width=cv.width;out.height=cv.height;const o=out.getContext("2d");o.fillStyle="#fff";o.fillRect(0,0,out.width,out.height);o.drawImage(cv,0,0);
+      const {data,error}=await sb.rpc("sign_quote",{p_token:token,p_name:name,p_signature:out.toDataURL("image/png"),p_agree:true,p_user_agent:navigator.userAgent});
+      if(error||!data||data.error){btn.disabled=false;btn.textContent="Accept & sign";er.textContent=(data&&data.error)||"Something went wrong. Please try again or call us.";return}
+      signedView(q,{name,at:Date.now()});window.scrollTo(0,0)};
+  }
+  (async()=>{
+    if(!token){fail("This link is missing its code. Please use the link we sent you.");return}
+    const {data,error}=await sb.rpc("get_quote_by_token",{p_token:token});
+    if(error||!data){fail("We couldn't load your quote. Please try again or call us.");return}
+    if(data.error){fail(data.error);return}
+    Q=data;if(data.signed)signedView(data,data.signed);else render(data);
+  })();
+})();
+</script>
+</body>
+</html>
