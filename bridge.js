@@ -14,8 +14,10 @@
   let resolveAuth;const authReady=new Promise(r=>resolveAuth=r);
   const gate=document.createElement("div");gate.id="authGate";
   gate.innerHTML=`<div class="ag-box"><img src="logo.png" alt="Yes, I Can Fix That" class="ag-logo"><h1>Office sign in</h1>
-    <p class="ag-p">Enter your email and we'll send you a sign-in link.</p>
-    <form id="agForm"><input type="email" id="agEmail" required placeholder="you@example.com" autocomplete="email"><button type="submit" class="btn primary block">Email me a sign-in link</button></form>
+    <p class="ag-p" id="agLead">Enter your email and we'll send you a sign-in code.</p>
+    <form id="agForm"><input type="email" id="agEmail" required placeholder="you@example.com" autocomplete="email"><button type="submit" class="btn primary block">Email me a sign-in code</button></form>
+    <form id="agCodeForm" hidden><input type="text" id="agCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" placeholder="Code from the email" style="font-size:22px;letter-spacing:.2em;text-align:center"><button type="submit" class="btn primary block">Sign in</button>
+      <button type="button" id="agBack" class="signout" style="color:var(--mid,#36649D)">Use a different email or send a new code</button></form>
     <p id="agMsg" class="ag-msg" role="status"></p></div>`;
   const css=document.createElement("style");css.textContent=`#authGate{position:fixed;inset:0;z-index:9999;background:var(--bg,#F2F4F8);display:flex;align-items:center;justify-content:center;padding:16px}
   #authGate[hidden]{display:none!important}.ag-box{background:var(--surface,#fff);border:1px solid var(--line,#DCE2EA);border-radius:12px;padding:28px;max-width:380px;width:100%;text-align:center}
@@ -25,12 +27,24 @@
   .signout{display:block;margin:10px auto 0;background:none;border:0;color:#cfd8e6;font-size:12px;text-decoration:underline;cursor:pointer}`;
   document.head.appendChild(css);
   function showGate(msg,bad){document.body.appendChild(gate);gate.hidden=false;const m=gate.querySelector("#agMsg");m.textContent=msg||"";m.className="ag-msg"+(bad?" bad":"")}
-  gate.addEventListener("submit",async e=>{e.preventDefault();const email=gate.querySelector("#agEmail").value.trim().toLowerCase();if(!email)return;
-    const btn=gate.querySelector("button");btn.disabled=true;
+  let codeEmail="";
+  const $g=s=>gate.querySelector(s);
+  function codeStep(on){$g("#agForm").hidden=on;$g("#agCodeForm").hidden=!on;$g("#agLead").textContent=on?`We emailed a code to ${codeEmail}. Type it here.`:"Enter your email and we'll send you a sign-in code.";if(on)setTimeout(()=>$g("#agCode").focus(),50)}
+  gate.addEventListener("click",e=>{if(e.target.id==="agBack"){$g("#agCode").value="";codeStep(false);showGate("",false)}});
+  gate.addEventListener("submit",async e=>{e.preventDefault();
+    if(e.target.id==="agCodeForm"){const token=$g("#agCode").value.replace(/\D/g,"");if(token.length<6){showGate("Type the code from the email.",true);return}
+      const b=$g("#agCodeForm button[type=submit]");b.disabled=true;
+      const {error}=await sb.auth.verifyOtp({email:codeEmail,token,type:"email"});
+      b.disabled=false;
+      if(!error){showGate("Signing you in…",false);return}
+      if(error)showGate(/expired|invalid/i.test(error.message)?"That code didn't work or has expired. Check it, or send a new one.":"Couldn't sign in: "+error.message,true);
+      return}
+    const email=$g("#agEmail").value.trim().toLowerCase();if(!email)return;
+    const btn=$g("#agForm button");btn.disabled=true;
     const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
     btn.disabled=false;
-    if(error)showGate(/rate|seconds/i.test(error.message)?"Too many sign-in emails. Wait a few minutes and try again.":"Couldn't send the link: "+error.message,true);
-    else showGate("Check your email for the sign-in link. Open it on this same device.",false)});
+    if(error){showGate(/rate|seconds/i.test(error.message)?"Too many sign-in emails. Wait a few minutes and try again.":"Couldn't send the code: "+error.message,true);return}
+    codeEmail=email;codeStep(true);showGate("Check your email. You can type the code here, or tap the link in the email if you're on this same device.",false)});
 
   async function checkStaff(){const {data,error}=await sb.rpc("is_staff");return !error&&data===true}
   (async()=>{

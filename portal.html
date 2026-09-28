@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>My Account · Yes, I Can Fix That</title>
+<link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fix That">
+<meta name="theme-color" content="#1F4575">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+:root{--navy:#1F4575;--orange:#F36A22;--mid:#36649D;--sage:#CEDBD7;--ink:#15233A;--muted:#5A6576;--line:#DCE2EA;--bg:#F2F4F8;--surface:#fff;--good:#1E7B4A;--good-soft:#E3F2EA;--bad:#B42318;--warn-soft:#FDEBDD}
+@media (prefers-color-scheme: dark){:root{--ink:#E8EEF6;--muted:#A7B3C3;--line:#2B3A52;--bg:#0F1826;--surface:#16223A;--good:#4CC38A;--good-soft:#173A2A;--bad:#F2877D;--warn-soft:#3A2A1C}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
+a{color:var(--mid)}
+.top{background:var(--navy);color:#fff}
+.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top img{height:44px;width:auto;background:#fff;border-radius:8px;padding:4px 8px;display:block}
+.top .who{font-size:13px;text-align:right;color:#cfd8e6}
+.top .who button{background:none;border:0;color:#fff;text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+nav{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav .in{max-width:860px;margin:0 auto;padding:0 8px;display:flex;overflow-x:auto}
+nav button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:12px 12px 9px;font:600 15px "Source Sans 3",sans-serif;color:var(--muted);cursor:pointer}
+nav button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--orange)}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px}
+h1,h2,h3{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px;color:var(--ink)}
+h1{font-size:30px}h2{font-size:22px}h3{font-size:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.muted{color:var(--muted)}.small{font-size:14px}
+.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.pill.warn{background:var(--warn-soft);color:#9A4A12;border-color:transparent}
+@media (prefers-color-scheme: dark){.pill.warn{color:#F6B58A}}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.btn{display:inline-block;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 16px;font:700 16px "Source Sans 3",sans-serif;cursor:pointer;text-decoration:none;text-align:center}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.block{display:block;width:100%}
+.btn[disabled]{opacity:.55;cursor:default}
+label.f{display:block;font-weight:700;font-size:14px;margin:12px 0 6px}
+input[type=text],input[type=email],select,textarea{width:100%;font:16px "Source Sans 3",sans-serif;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+textarea{min-height:110px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.r{text-align:right;white-space:nowrap}
+.tot td{border:0;font-weight:700}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.ph{position:relative;border-radius:8px;overflow:hidden;background:var(--bg);aspect-ratio:4/3;border:0;padding:0;cursor:zoom-in}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{position:absolute;left:6px;top:6px;background:rgba(21,35,58,.8);color:#fff;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px}
+.err{color:var(--bad);font-weight:700;margin-top:10px}
+.ok{color:var(--good);font-weight:700;margin-top:10px}
+.gate{min-height:70vh;display:flex;align-items:center;justify-content:center}
+.gate .card{max-width:400px;width:100%;text-align:center}
+.gate img{width:220px;max-width:80%;margin:0 auto 10px;display:block}
+.consent{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.consent:last-child{border:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.seg button{border:0;background:var(--surface);color:var(--ink);padding:8px 14px;font:700 14px "Source Sans 3",sans-serif;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:6px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+.lightbox img{max-width:100%;max-height:82vh;border-radius:6px}
+.lightbox .cap{color:#fff;margin-top:10px;font-size:14px;text-align:center}
+.lightbox button{position:absolute;top:10px;right:14px;background:none;border:0;color:#fff;font-size:34px;cursor:pointer}
+.receipt{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  .top,nav,.noprint,.lightbox{display:none!important}
+  .wrap>*:not(.receipt){display:none!important}
+  .receipt{display:block!important}
+  .card{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="wrap"><div class="card" style="text-align:center">Loading…</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  const SB_URL="https://yhcinsqiqernsqussjgb.supabase.co",SB_KEY="sb_publishable_CGRtG8cY_M8vEnnJOSX_Cg_z3jUVkCD",BUCKET="office-files";
+  const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"pkce",storageKey:"fixthat-portal"}});
+  window.__sb=sb;
+  const app=document.getElementById("app");
+  const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const money=n=>(+n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
+  const parseD=s=>{const [y,m,d]=String(s).split("-").map(Number);return new Date(y,(m||1)-1,d||1)};
+  const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const fmtD=s=>s?parseD(String(s).slice(0,10)).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"}):"";
+  const fmtT=ms=>ms?new Date(+ms).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}):"";
+  const tm=t=>{if(!t)return "";const [h,m]=t.split(":").map(Number);return (h%12||12)+(m?":"+String(m).padStart(2,"0"):"")+(h<12?" AM":" PM")};
+  const today=ymd(new Date());
+  const JOB_TYPES=["Multiple repairs","Doors & Windows","Drywall & Paint","Flooring","Tile & Backsplash","Carpentry & Trim","Mounting & Installs","Fixture Repairs","Outdoor & Fences","Other"];
+  const CH={call:["Phone calls","We call to follow up on quotes and set up visits."],text:["Text messages","Appointment reminders and the occasional check-in."],email:["Email","Quotes, receipts and appointment confirmations."],vm:["Recorded voicemail","A short recorded message instead of a live call."]};
+  let ME=null,SESSION=null,TAB="home",codeEmail="",busy=false;
+  const URLS={};
+
+  /* ---------- sign in ---------- */
+  function header(){const b=(ME&&ME.business)||{};return `<div class="top"><div class="in"><img src="logo.png" alt="Yes, I Can Fix That"><div class="who">${SESSION?esc(SESSION.user.email)+'<br><button type="button" data-act="signout">Sign out</button>':esc(b.phone||"(801) 917-4442")}</div></div></div>`}
+  function gate(msg,bad,codeStep){
+    app.innerHTML=`<div class="wrap gate"><div class="card"><img src="logo.png" alt="Yes, I Can Fix That"><h1>My account</h1>
+      ${codeStep?`<p class="muted">We emailed a code to <b>${esc(codeEmail)}</b>. Type it here.</p>
+        <form id="codeForm"><input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code from the email" style="font-size:22px;letter-spacing:.2em;text-align:center"><button class="btn primary block" style="margin-top:10px">Sign in</button></form>
+        <p><button type="button" class="btn" data-act="back" style="margin-top:10px">Use a different email</button></p>`
+      :`<p class="muted">See your jobs and photos, ask for a quote, and choose how we contact you. Enter the email address we have on file for you.</p>
+        <form id="emailForm"><input type="email" id="email" required autocomplete="email" placeholder="you@example.com"><button class="btn primary block" style="margin-top:10px">Email me a sign-in code</button></form>`}
+      <p class="${bad?"err":"ok"}" role="status">${esc(msg||"")}</p>
+      <p class="small muted">Questions? Call <a href="tel:8019174442">(801) 917-4442</a>.</p></div></div>`;
+    const ef=document.getElementById("emailForm"),cf=document.getElementById("codeForm");
+    if(ef)ef.onsubmit=async e=>{e.preventDefault();const email=document.getElementById("email").value.trim().toLowerCase();if(!email)return;
+      ef.querySelector("button").disabled=true;
+      const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+      if(error){gate(/rate|seconds/i.test(error.message)?"Too many sign-in emails. Wait a few minutes and try again.":"We couldn't send the code. Please try again or call us.",true);return}
+      codeEmail=email;gate("Check your email for the code.",false,true)};
+    if(cf){const ci=document.getElementById("code");setTimeout(()=>ci.focus(),50);
+      cf.onsubmit=async e=>{e.preventDefault();const token=ci.value.replace(/\D/g,"");if(token.length<6){gate("Type the code from the email.",true,true);return}
+        cf.querySelector("button").disabled=true;
+        const {data,error}=await sb.auth.verifyOtp({email:codeEmail,token,type:"email"});
+        if(error){gate("That code didn't work or has expired. Check it, or go back and send a new one.",true,true);return}
+        SESSION=data.session;load()}}
+  }
+
+  /* ---------- data ---------- */
+  async function load(){
+    app.innerHTML=header()+`<div class="wrap"><div class="card" style="text-align:center">Loading your account…</div></div>`;
+    const {data,error}=await sb.rpc("portal_me");
+    if(error){app.innerHTML=header()+`<div class="wrap"><div class="card"><h2>Sorry</h2><p>We couldn't load your account right now. Please try again in a minute or call <a href="tel:8019174442">(801) 917-4442</a>.</p></div></div>`;return}
+    ME=data;
+    if(!ME.found){app.innerHTML=header()+`<div class="wrap"><div class="card"><h2>We couldn't find your account</h2><p>We don't have <b>${esc(SESSION.user.email)}</b> on file yet. Call <a href="tel:8019174442">(801) 917-4442</a> and we'll add it, or sign out and try the email you gave us.</p></div></div>`;return}
+    render();signPhotos();
+  }
+  function signPhotos(){
+    const ids=[];(ME.jobs||[]).forEach(j=>(j.photos||[]).forEach(p=>{if(!URLS[p.id])ids.push(p.id)}));
+    if(!ids.length)return;
+    sb.storage.from(BUCKET).createSignedUrls(ids,60*60*6).then(({data})=>{(data||[]).forEach(x=>{if(x.signedUrl)URLS[x.path]=x.signedUrl});
+      document.querySelectorAll("img[data-photo]").forEach(i=>{const u=URLS[i.dataset.photo];if(u&&i.src!==u)i.src=u})});
+  }
+  const BLANK="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
+
+  /* ---------- helpers ---------- */
+  function jobDays(j){if(!j.scheduledDate)return [];const out=[];const end=j.endDate&&j.endDate>=j.scheduledDate?j.endDate:j.scheduledDate;
+    let d=parseD(j.scheduledDate),n=0;while(ymd(d)<=end&&n<60){const w=d.getDay();if(!(j.skipWeekends&&(w===0||w===6)))out.push(ymd(d));d.setDate(d.getDate()+1);n++}return out}
+  function whenText(j){const days=jobDays(j);if(!days.length)return "";
+    const time=j.startTime&&j.endTime?`${tm(j.startTime)} to ${tm(j.endTime)}`:j.startTime?`starting at ${tm(j.startTime)}`:"";
+    if(days.length===1)return fmtD(days[0])+(time?", "+time:"");
+    return `${fmtD(days[0])} through ${fmtD(days[days.length-1])} (${days.length} work days)${time?", "+time+" each day":""}`}
+  const addr=p=>p?[p.address,p.town].filter(Boolean).join(", ")+(p.zip?" "+p.zip:""):"";
+  const mapLink=p=>addr(p)?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr(p))}" target="_blank" rel="noopener">${esc(addr(p))}</a>`:"";
+  function paidSoFar(j){if(j.paidFull)return +(j.quote&&j.quote.total)||0;return j.depositPaid?(+j.depositAmt||0):0}
+  function balance(j){const t=+(j.quote&&j.quote.total)||0;return j.paidFull?0:Math.max(0,Math.round((t-paidSoFar(j))*100)/100)}
+  function jobStatus(j){if(j.completed)return j.paidFull?["Paid in full","good"]:["Completed","warn"];
+    const d=jobDays(j);if(!d.length)return ["Getting scheduled","warn"];
+    if(d[d.length-1]<today)return ["Wrapping up",""];if(d[0]<=today)return ["In progress","good"];return ["Scheduled","good"]}
+  function linesTable(q){return `<table><thead><tr><th>Work</th><th class="r">Amount</th></tr></thead><tbody>${(q.lines||[]).map(l=>`<tr><td>${esc(l.desc)}${(+l.qty||1)!==1?`<div class="small muted">${+l.qty} × ${money(l.price)}</div>`:""}</td><td class="r">${money((+l.qty||0)*(+l.price||0))}</td></tr>`).join("")}</tbody><tbody class="tot"><tr><td class="r">Total</td><td class="r">${money(q.total)}</td></tr></tbody></table>`}
+  function photoGrid(j){const ps=j.photos||[];if(!ps.length)return "";
+    return `<div class="photos">${ps.map((p,i)=>`<button type="button" class="ph" data-act="zoom" data-j="${esc(j.id)}" data-i="${i}" aria-label="Open ${esc(p.kind||"photo")} photo"><img data-photo="${esc(p.id)}" src="${esc(URLS[p.id]||BLANK)}" alt="${esc(p.kind||"Job photo")}" loading="lazy">${p.kind?`<span>${esc(p.kind)}</span>`:""}</button>`).join("")}</div>`}
+  function stampText(p){const s=p.stamp||{};const bits=[];if(p.kind)bits.push(p.kind);const t=s.taken||p.at;if(t)bits.push(fmtT(t));if(s.addr)bits.push(s.addr);return bits.join(" · ")}
+
+  /* ---------- views ---------- */
+  function vHome(){
+    const c=ME.customers[0]||{};const jobs=ME.jobs||[];
+    const upcoming=jobs.filter(j=>!j.completed&&jobDays(j).some(d=>d>=today));
+    const unsched=jobs.filter(j=>!j.completed&&!jobDays(j).length);
+    const visits=(ME.requests||[]).filter(r=>r.visitDate&&r.visitDate>=today);
+    const due=jobs.filter(j=>j.completed&&balance(j)>0);
+    const quotes=ME.quotes||[];
+    let h=`<h1>Hi${c.first?", "+esc(c.first):""}</h1>`;
+    if(quotes.length)h+=quotes.map(q=>`<div class="card"><div class="spread"><div><h2>Quote ${esc(q.quoteNo||"")}</h2><div class="small muted">${esc(q.jobType||"")}${q.property&&q.property.address?" · "+esc(addr(q.property)):""}</div></div>${q.signed?'<span class="pill good">Signed</span>':'<span class="pill warn">Waiting for you</span>'}</div>
+      <p style="margin:8px 0">Total <b>${money(q.total)}</b> · deposit to schedule <b>${money(q.deposit)}</b></p>
+      ${q.signed?`<p class="small muted">You signed this on ${fmtT(q.signed.at)}. We'll be in touch about your deposit and scheduling.</p>`:`<button class="btn primary" data-act="signQuote" data-id="${esc(q.id)}">Review &amp; sign</button>`}</div>`).join("");
+    if(upcoming.length||visits.length)h+=`<div class="card"><h2>Coming up</h2>${visits.map(r=>`<p><b>Estimate visit: ${fmtD(r.visitDate)}${r.visitTime?", around "+esc(r.visitTime):""}</b><br><span class="small muted">Seth will look at your ${esc((r.jobType||"project").toLowerCase())} and put together a quote.</span></p>`).join("")}
+      ${upcoming.map(j=>`<p><b>${esc(whenText(j))}</b><br>${esc((j.quote&&j.quote.jobType)||"Your job")}${j.quote&&j.quote.property?" at "+mapLink(j.quote.property):""}</p>`).join("")}
+      <p class="small muted">Need to change a time? Call <a href="tel:8019174442">${esc(ME.business.phone)}</a>.</p></div>`;
+    if(unsched.length)h+=`<div class="card"><h2>Getting scheduled</h2>${unsched.map(j=>`<p>${esc((j.quote&&j.quote.jobType)||"Your job")} (${esc(j.jobNo||"")}). We'll reach out with a date soon.</p>`).join("")}</div>`;
+    if(due.length)h+=`<div class="card"><h2>Balance</h2>${due.map(j=>`<div class="spread" style="margin-bottom:6px"><span>${esc((j.quote&&j.quote.jobType)||"Job")} · ${esc(j.jobNo||"")}</span><b>${money(balance(j))}</b></div>`).join("")}<p class="small muted">Questions about a balance? Call <a href="tel:8019174442">${esc(ME.business.phone)}</a>.</p></div>`;
+    if(!quotes.length&&!upcoming.length&&!visits.length&&!unsched.length&&!due.length)h+=`<div class="card"><p>Nothing on the calendar right now.</p><button class="btn primary" data-act="tab" data-t="request">Ask for a quote</button></div>`;
+    const reqs=(ME.requests||[]).filter(r=>!r.visitDate);
+    if(reqs.length)h+=`<div class="card"><h2>Your requests</h2>${reqs.map(r=>`<p><b>${esc(r.jobType||"Quote request")}</b> <span class="pill">${esc(r.leadNo||"")}</span><br><span class="small muted">Sent ${fmtT(r.createdAt)}. We'll call you to set up a time.</span></p>`).join("")}</div>`;
+    return h;
+  }
+  function vJobs(){const jobs=ME.jobs||[];
+    if(!jobs.length)return `<h1>My jobs</h1><div class="card"><p>Once we do work for you, each job shows here with photos and a receipt.</p></div>`;
+    return `<h1>My jobs</h1>`+jobs.map(j=>{const q=j.quote||{};const [st,cls]=jobStatus(j);const bal=balance(j);
+      return `<div class="card"><div class="spread"><div><h2>${esc(q.jobType||"Job")} <span class="pill">${esc(j.jobNo||"")}</span></h2><div class="small muted">${q.property?mapLink(q.property):""}</div></div><span class="pill ${cls}">${st}</span></div>
+        <p class="small" style="margin:6px 0 10px">${j.completed?"Completed "+fmtD(j.completedAt):esc(whenText(j)||"Not scheduled yet")}</p>
+        ${photoGrid(j)}
+        <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Work and payments</summary><div style="margin-top:8px">${linesTable(q)}
+          <p class="small" style="margin-top:8px">Paid so far: <b>${money(paidSoFar(j))}</b> · Balance: <b>${money(bal)}</b></p>
+          <button class="btn" data-act="receipt" data-id="${esc(j.id)}">Print or save receipt</button></div></details></div>`}).join("");
+  }
+  function vRequest(){const cs=ME.customers;const f=window.__rq||(window.__rq={cid:cs[0].id,pid:(cs[0].properties[0]||{}).id||"__new",type:"",desc:"",timing:"",photos:[]});
+    const c=cs.find(x=>x.id===f.cid)||cs[0];const types=(ME.business.jobTypes&&ME.business.jobTypes.length?ME.business.jobTypes:JOB_TYPES);
+    return `<h1>Ask for a quote</h1><div class="card">
+      ${cs.length>1?`<label class="f" for="rqC">Account</label><select id="rqC">${cs.map(x=>`<option value="${esc(x.id)}"${x.id===f.cid?" selected":""}>${esc(x.company||[x.first,x.last].filter(Boolean).join(" "))}</option>`).join("")}</select>`:""}
+      <label class="f" for="rqP">Where is the work?</label><select id="rqP">${(c.properties||[]).map(p=>`<option value="${esc(p.id)}"${p.id===f.pid?" selected":""}>${esc(addr(p)||"Address on file")}</option>`).join("")}<option value="__new"${f.pid==="__new"?" selected":""}>A different address…</option></select>
+      ${f.pid==="__new"?`<div class="grid2"><label class="f">Street address<input type="text" id="rqA" autocomplete="street-address" value="${esc(f.a||"")}"></label><label class="f">City<input type="text" id="rqT" autocomplete="address-level2" value="${esc(f.t||"")}"></label><label class="f">Zip<input type="text" id="rqZ" inputmode="numeric" autocomplete="postal-code" value="${esc(f.z||"")}"></label></div>`:""}
+      <label class="f" for="rqK">Type of work</label><select id="rqK"><option value="">Pick one (optional)</option>${types.map(t=>`<option${t===f.type?" selected":""}>${esc(t)}</option>`).join("")}</select>
+      <label class="f" for="rqD">What do you need done?</label><textarea id="rqD" placeholder="For example: the bathroom fan is loud and the light flickers. Also a hole in the hallway drywall about the size of a fist.">${esc(f.desc)}</textarea>
+      <label class="f" for="rqW">When would you like it done?</label><input type="text" id="rqW" placeholder="As soon as possible, next month, before the holidays…" value="${esc(f.timing)}">
+      <label class="f">Photos (up to 8, optional)</label>
+      <label class="btn" style="cursor:pointer">📷 Add photos<input type="file" id="rqF" accept="image/*" multiple hidden></label>
+      <div class="thumbs">${f.photos.map((p,i)=>`<img src="${p.url}" alt="Photo ${i+1}">`).join("")}</div>
+      <button class="btn primary block" data-act="sendRequest" style="margin-top:16px"${busy?" disabled":""}>${busy?"Sending…":"Send request"}</button>
+      <div id="rqMsg" role="status"></div></div>`}
+  function vPrefs(){return `<h1>How we contact you</h1>`+ME.customers.map(c=>`<div class="card">${ME.customers.length>1?`<h3>${esc(c.company||[c.first,c.last].filter(Boolean).join(" "))}</h3>`:""}
+      <p class="small muted">Phone ${esc(c.phone||"not on file")} · Email ${esc(c.email||"")}. To change these, call <a href="tel:8019174442">${esc(ME.business.phone)}</a>.</p>
+      ${Object.keys(CH).map(ch=>{const v=c.consent&&c.consent[ch];return `<div class="consent"><div><b>${CH[ch][0]}</b><div class="small muted">${CH[ch][1]}</div></div><div class="seg" role="group" aria-label="${CH[ch][0]}"><button aria-pressed="${v===true}" data-act="consent" data-c="${esc(c.id)}" data-ch="${ch}" data-v="1">Yes</button><button aria-pressed="${v===false}" data-act="consent" data-c="${esc(c.id)}" data-ch="${ch}" data-v="0">No</button></div></div>`}).join("")}
+      <p class="small muted" style="margin-top:10px">If you choose No for texts, calls and email, we can't send appointment reminders or confirmations. You can change this anytime.</p></div>`).join("")}
+  function vReceipt(j){const q=j.quote||{};const c=ME.customers[0]||{};const b=ME.business;
+    return `<div class="receipt" id="receipt"><div class="card"><img src="logo.png" alt="" style="height:56px"><p>${esc(b.company)} · ${esc(b.phone)}${b.license?" · License #"+esc(b.license):""}</p>
+      <h2>Receipt · ${esc(j.jobNo||"")}</h2><p>${esc([c.first,c.last].filter(Boolean).join(" ")||c.company||"")}<br>${esc(addr(q.property))}<br>${j.completed?"Completed "+fmtD(j.completedAt):esc(whenText(j))}</p>
+      ${linesTable(q)}<p>Deposit paid: ${money(j.depositPaid?j.depositAmt:0)}${j.paidFull?`<br>Final payment: ${money(j.fullAmt||balance(Object.assign({},j,{paidFull:false})))}${j.fullDate?" on "+fmtD(j.fullDate):""}`:""}<br><b>Balance: ${money(balance(j))}</b></p>
+      ${b.terms?`<h3>Terms &amp; conditions</h3><p style="white-space:pre-wrap;font-size:13px">${esc(b.terms)}</p>`:""}</div></div>`}
+
+  function render(){
+    const tabs=[["home","Home"],["jobs","My jobs"],["request","Get a quote"],["prefs","Contact"]];
+    const body={home:vHome,jobs:vJobs,request:vRequest,prefs:vPrefs}[TAB]();
+    app.innerHTML=header()+`<nav aria-label="Account sections"><div class="in">${tabs.map(([k,l])=>`<button data-act="tab" data-t="${k}" aria-current="${TAB===k}">${l}</button>`).join("")}</div></nav><div class="wrap">${body}<div id="rcpt"></div></div>`;
+    const f=document.getElementById("rqF");if(f)f.onchange=()=>addPhotos(f.files);
+    ["rqC","rqP","rqK"].forEach(id=>{const el=document.getElementById(id);if(el)el.onchange=()=>{saveRq();if(id==="rqC"){const c=ME.customers.find(x=>x.id===el.value);window.__rq.pid=(c.properties[0]||{}).id||"__new"}render()}});
+  }
+  function saveRq(){const f=window.__rq;if(!f)return;const g=id=>{const e=document.getElementById(id);return e?e.value:null};
+    if(g("rqC")!=null)f.cid=g("rqC");if(g("rqP")!=null)f.pid=g("rqP");if(g("rqK")!=null)f.type=g("rqK");if(g("rqD")!=null)f.desc=g("rqD");if(g("rqW")!=null)f.timing=g("rqW");
+    if(g("rqA")!=null){f.a=g("rqA");f.t=g("rqT");f.z=g("rqZ")}}
+  async function shrink(file){try{const url=URL.createObjectURL(file);const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    const k=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);return await new Promise(r=>c.toBlob(r,"image/jpeg",.85))}catch(e){return null}}
+  async function addPhotos(files){saveRq();const f=window.__rq;
+    for(const file of [...files]){if(f.photos.length>=8)break;const b=await shrink(file);if(!b)continue;f.photos.push({blob:b,url:URL.createObjectURL(b)})}render()}
+
+  /* ---------- actions ---------- */
+  const ACT={
+    signout(){sb.auth.signOut().then(()=>{SESSION=null;ME=null;gate()})},
+    back(){gate()},
+    tab(d){saveRq();TAB=d.t;render();window.scrollTo(0,0)},
+    async signQuote(d,btn){btn.disabled=true;const {data,error}=await sb.rpc("portal_quote_link",{p_quote_id:d.id});
+      if(error||!data||data.error){btn.disabled=false;alert((data&&data.error)||"We couldn't open that quote. Please call us.");return}
+      location.href="sign.html?t="+encodeURIComponent(data.token)},
+    async consent(d,btn){const c=ME.customers.find(x=>x.id===d.c);const ok=d.v==="1";
+      const {data,error}=await sb.rpc("portal_set_consent",{p_customer_id:d.c,p_ch:d.ch,p_ok:ok});
+      if(error||!data||data.error){alert("We couldn't save that. Please try again.");return}
+      c.consent=c.consent||{};c.consent[d.ch]=ok;render()},
+    zoom(d){const j=ME.jobs.find(x=>x.id===d.j);const p=j&&j.photos[+d.i];if(!p)return;
+      const lb=document.createElement("div");lb.className="lightbox";lb.innerHTML=`<button type="button" aria-label="Close">×</button><img src="${esc(URLS[p.id]||BLANK)}" alt="${esc(p.kind||"Job photo")}"><div class="cap">${esc(stampText(p))}${URLS[p.id]?` · <a href="${esc(URLS[p.id])}" target="_blank" rel="noopener" style="color:#fff">Open full size</a>`:""}</div>`;
+      lb.onclick=e=>{if(e.target===lb||e.target.tagName==="BUTTON")lb.remove()};document.body.appendChild(lb)},
+    receipt(d){const j=ME.jobs.find(x=>x.id===d.id);document.getElementById("rcpt").innerHTML=vReceipt(j);setTimeout(()=>window.print(),50)},
+    async sendRequest(d,btn){saveRq();const f=window.__rq;const msg=document.getElementById("rqMsg");
+      if((f.desc||"").trim().length<5){msg.className="err";msg.textContent="Tell us a little about the work you need.";return}
+      if(f.pid==="__new"&&(f.a||"").trim().length<4){msg.className="err";msg.textContent="Add the address for this work.";return}
+      busy=true;render();const m=()=>document.getElementById("rqMsg");
+      const paths=[];
+      for(const p of f.photos){const path="requests/"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2))+".jpg";
+        const {error}=await sb.storage.from(BUCKET).upload(path,p.blob,{contentType:"image/jpeg"});if(!error)paths.push(path)}
+      const {data,error}=await sb.rpc("portal_request",{p_customer_id:f.cid,p_property_id:f.pid==="__new"?"":f.pid,p_address:f.a||"",p_town:f.t||"",p_zip:f.z||"",p_job_type:f.type||"",p_request:f.desc,p_timing:f.timing||"",p_photos:paths});
+      busy=false;
+      if(error||!data||data.error){render();m().className="err";m().textContent=(data&&data.error)||"We couldn't send that. Please try again or call us.";return}
+      window.__rq=null;TAB="home";await load();
+      const w=document.querySelector(".wrap");if(w)w.insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--good)"><b style="color:var(--good)">Thanks! Your request ${esc(data.leadNo)} is in.</b> We'll call you to set up a time.${paths.length<f.photos?.length?" Some photos didn't upload.":""}</div>`)}
+  };
+  document.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b||!ACT[b.dataset.act])return;e.preventDefault();ACT[b.dataset.act](b.dataset,b)});
+
+  /* ---------- start ---------- */
+  (async()=>{const {data:{session}}=await sb.auth.getSession();if(session){SESSION=session;load()}else gate()})();
+  sb.auth.onAuthStateChange((ev,session)=>{if(ev==="SIGNED_IN"&&session&&!SESSION){SESSION=session;load()}});
+})();
+</script>
+</body>
+</html>

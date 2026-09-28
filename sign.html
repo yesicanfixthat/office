@@ -62,7 +62,7 @@ input[type=text]{width:100%;font-size:18px;padding:10px 12px;border:1px solid va
   function header(q){const b=q&&q.business||{};return `<header><img src="logo.png" alt="Yes, I Can Fix That"><div class="who">${esc(b.phone||"(801) 917-4442")}${b.license?`<br>License #${esc(b.license)}`:""}</div></header>`}
   function fail(msg){app.innerHTML=header(Q)+`<div class="card center"><h2>Sorry</h2><p>${esc(msg)}</p><p><a href="tel:8019174442">Call (801) 917-4442</a></p></div>`}
   function signedView(q,s){app.innerHTML=header(q)+`<div class="card ok center"><h2>✓ Quote accepted</h2><p>Thank you${q.customer&&q.customer.first?", "+esc(q.customer.first):""}! ${s&&s.name?"Signed by <b>"+esc(s.name)+"</b>":""}${s&&s.at?" on "+new Date(+s.at).toLocaleString("en-US",{dateStyle:"long",timeStyle:"short"}):""}.</p>
-    <p>Your deposit to get on the schedule is <b>${money(q.deposit)}</b>. We'll send you a secure link to pay it${q.business&&q.business.phone?", or call "+esc(q.business.phone)+" with any questions":""}.</p></div>`+quoteCard(q)}
+    <p>Your deposit to get on the schedule is <b>${money(q.deposit)}</b>. We'll send you a secure link to pay it${q.business&&q.business.phone?", or call "+esc(q.business.phone)+" with any questions":""}.</p><p class="small"><a href="portal.html">Go to my account</a></p></div>`+quoteCard(q)}
   function quoteCard(q){const c=q.customer||{},p=q.property||{};
     return `<div class="card"><h1>Quote ${esc(q.quoteNo||"")}</h1>
       <div class="meta"><span>For <b>${esc([c.first,c.last].filter(Boolean).join(" ")||c.company||"")}</b></span>${p.address?`<span>At <b>${esc(p.address)}${p.town?", "+esc(p.town):""}${p.zip?" "+esc(p.zip):""}</b></span>`:""}${q.jobType?`<span>${esc(q.jobType)}</span>`:""}</div>

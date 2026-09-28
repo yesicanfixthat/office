@@ -187,7 +187,7 @@ td input,td select{padding:6px 8px;font-size:14px}
 .cal-n{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px}
 .cal-hrs{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:500} .cal-hrs.over{color:var(--bad);font-weight:700}
 .drag{cursor:grab;color:var(--muted);padding:2px 3px;user-select:none} .drag:active{cursor:grabbing} tr.dragover td{box-shadow:inset 0 2px 0 var(--accent)} .mv{display:inline-flex;flex-direction:column;vertical-align:middle} .mv button{padding:0 3px;font-size:11px;line-height:1.1;color:var(--mid)} .mv button[disabled]{opacity:.25}
-.thumbs{display:flex;flex-wrap:wrap;gap:8px} .thumb{position:relative;width:96px;height:96px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2)} .thumbs.sm .thumb{width:44px;height:44px} .thumb img{width:100%;height:100%;object-fit:cover;display:block} .thumb .pdf{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;font-weight:700;font-size:13px;color:var(--mid);text-decoration:none;text-align:center} .thumb .pdf span{font-weight:400;font-size:10px} .thumbs.sm .pdf span{display:none} .thumb .tk{position:absolute;left:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:1px 5px;border-top-right-radius:4px} .thumb .tx{position:absolute;top:2px;right:2px;border:0;border-radius:50%;width:20px;height:20px;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:1}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px} .thumb{position:relative;width:96px;height:96px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2)} .thumbs.sm .thumb{width:44px;height:44px} .thumb img{width:100%;height:100%;object-fit:cover;display:block} .thumb .pdf{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;font-weight:700;font-size:13px;color:var(--mid);text-decoration:none;text-align:center} .thumb .pdf span{font-weight:400;font-size:10px} .thumbs.sm .pdf span{display:none} .thumb .tk{position:absolute;left:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:1px 5px;border-top-right-radius:4px} .thumb .tshare{position:absolute;left:2px;top:2px;border:0;border-radius:4px;font-size:10px;font-weight:700;padding:2px 5px;background:rgba(0,0,0,.65);color:#fff;cursor:pointer} .thumb .tshare.on{background:#1E7B4A} .thumb .tx{position:absolute;top:2px;right:2px;border:0;border-radius:50%;width:20px;height:20px;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;line-height:1}
 .wk-wrap{overflow-x:auto} .wk{display:grid;gap:0 6px;min-width:760px} .wk-h{font-size:13px;padding:4px 6px;border-bottom:2px solid var(--line)} .wk-h.today{border-bottom-color:var(--accent)} .wk-ln{display:flex;justify-content:space-around;font-size:10px;font-weight:700}
 .wk-t{position:relative} .wk-t span{position:absolute;right:4px;font-size:10px;color:var(--muted);transform:translateY(-1px)}
 .wk-d{position:relative;background:repeating-linear-gradient(to bottom,transparent 0 33px,var(--line) 33px 34px);border-radius:4px} .wk-d.past{opacity:.55} .wk-lane{position:absolute;top:0;bottom:0;padding:0 1px}
@@ -415,7 +415,7 @@ function jobStage(j,raw){
   if(!j.confirmed)return "confirm";
   return "scheduled";
 }
-const STAGES={order:["Order materials","warn"],schedule:["Ready to schedule","warn"],confirm:["Send appointment","warn"],scheduled:["Scheduled","good"],hold:["On hold: invoice needs changes","warn"],invoice:["Invoice in QuickBooks","warn"],review:["Send to NiceJob","warn"],done:["Done","good"]};
+const STAGES={order:["Order materials","warn"],schedule:["Ready to schedule","warn"],confirm:["Send appointment","warn"],scheduled:["Scheduled","good"],hold:["On hold: invoice needs changes","warn"],invoice:["Send final bill","warn"],review:["Send to NiceJob","warn"],done:["Done","good"]};
 function latestEta(q){const m=((q&&q.internal&&q.internal.materials)||[]).map(x=>x.eta).filter(Boolean).sort();return m[m.length-1]||""}
 function nextAvailable(q){
   let d=todayStr(1);const eta=latestEta(q);
@@ -528,6 +528,7 @@ const PHOTO_KINDS=["Before","During","After","Other"];
 function expCats(){return S.settings.expenseCats&&S.settings.expenseCats.length?S.settings.expenseCats:DEFAULTS.expenseCats}
 const blobUrl=id=>window.__fileUrl?window.__fileUrl(id):"/_blob/"+id;
 async function shrinkImage(file){
+  if(file&&file._stamped)return file;
   if(!/^image\//.test(file.type)||file.type==="image/gif"||file.type==="image/svg+xml")return file;
   try{const url=URL.createObjectURL(file);const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
     const max=2000;const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
@@ -538,9 +539,47 @@ async function uploadFiles(files){
   const out=[];for(const f of files){
     try{const b=await shrinkImage(f);const type=b.type||f.type;if(!/^(image\/(png|jpeg|gif|webp)|application\/pdf)$/.test(type)){toast(`${f.name}: use a photo (JPG/PNG) or a PDF.`);continue}
       let r;try{r=await assetsFn.upload(b,{type})}catch(e){if(e&&e.code==="store_unavailable"){await new Promise(x=>setTimeout(x,1200));r=await assetsFn.upload(b,{type})}else throw e}
-      out.push({id:r.id,name:f.name||"photo",type:r.contentType,at:Date.now()})}
+      out.push(Object.assign({id:r.id,name:f.name||"photo",type:r.contentType,at:Date.now()},f._stamp?{stamp:f._stamp}:{}))}
     catch(e){const c=e&&e.code;toast(c==="too_large"?`${f.name} is too big (20 MB max).`:c==="quota_or_state"?"Photo storage is full. Delete old photos you don't need.":c==="rate_limited"?"Too many uploads at once. Wait a moment and try again.":c==="upstream_auth"?"Reload the page and sign in again to upload.":`Couldn't upload ${f.name}.`)}}
   return out}
+/* ---------- Photo stamps: date, time, job address, GPS (like CompanyCam) ---------- */
+const PORTAL_URL="https://yesicanfixthat.github.io/office/portal.html";
+function readExif(buf){try{const v=new DataView(buf);if(v.byteLength<4||v.getUint16(0)!==0xFFD8)return {};let o=2;
+  while(o+10<v.byteLength){const m=v.getUint16(o);if((m&0xFF00)!==0xFF00||m===0xFFDA)break;const len=v.getUint16(o+2);
+    if(m===0xFFE1&&v.getUint32(o+4)===0x45786966)return exifTiff(v,o+10);o+=2+len}}catch(e){}return {}}
+function exifTiff(v,t){const le=v.getUint16(t)===0x4949,u16=p=>v.getUint16(p,le),u32=p=>v.getUint32(p,le);
+  const ifd=off=>{const out={},n=u16(t+off);for(let i=0;i<n;i++){const e=t+off+2+i*12;out[u16(e)]={cnt:u32(e+4),vo:e+8,off:u32(e+8)}}return out};
+  const str=en=>{const p=en.cnt>4?t+en.off:en.vo;let x="";for(let i=0;i<en.cnt;i++){const c=v.getUint8(p+i);if(!c)break;x+=String.fromCharCode(c)}return x};
+  const rat=(en,i)=>{const p=t+en.off+i*8,d=u32(p+4);return d?u32(p)/d:0};const r={};
+  const when=x=>{const m=String(x).match(/(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/);return m?new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5],+m[6]).getTime():null};
+  try{const i0=ifd(u32(t+4));
+    if(i0[0x8769]){const ex=ifd(i0[0x8769].off);const d=ex[0x9003]||ex[0x9004];if(d)r.taken=when(str(d))}
+    if(!r.taken&&i0[0x0132])r.taken=when(str(i0[0x0132]));
+    if(i0[0x8825]){const g=ifd(i0[0x8825].off);if(g[2]&&g[4]&&g[2].cnt===3&&g[4].cnt===3){const dms=en=>rat(en,0)+rat(en,1)/60+rat(en,2)/3600;let lat=dms(g[2]),lng=dms(g[4]);
+      if(g[1]&&String.fromCharCode(v.getUint8(g[1].vo))==="S")lat=-lat;if(g[3]&&String.fromCharCode(v.getUint8(g[3].vo))==="W")lng=-lng;
+      if(lat||lng){r.lat=+lat.toFixed(6);r.lng=+lng.toFixed(6)}}}
+  }catch(e){}return r}
+function hereNow(){return new Promise(res=>{if(!navigator.geolocation)return res(null);let done=false;const fin=x=>{if(!done){done=true;res(x)}};setTimeout(()=>fin(null),9000);
+  navigator.geolocation.getCurrentPosition(p=>fin({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)}),()=>fin(null),{enableHighAccuracy:true,timeout:8000,maximumAge:60000})})}
+async function stampPhoto(file,ex,info){
+  const now=Date.now();const taken=ex.taken||file.lastModified||now;
+  let gps=null,from="";if(ex.lat!=null){gps={lat:ex.lat,lng:ex.lng};from="photo"}else if(info.here&&Math.abs(now-taken)<30*60000){gps=info.here;from="phone"}
+  const stamp=Object.assign({taken,addr:info.addr||"",jobNo:info.jobNo||""},gps?{lat:gps.lat,lng:gps.lng,gpsFrom:from}:{},gps&&gps.acc?{acc:gps.acc}:{});
+  const url=URL.createObjectURL(file);let img;try{img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url})}catch(e){URL.revokeObjectURL(url);return null}
+  const k=Math.min(1,2000/Math.max(img.naturalWidth,img.naturalHeight)),W=Math.round(img.naturalWidth*k),H=Math.round(img.naturalHeight*k);
+  const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");g.drawImage(img,0,0,W,H);URL.revokeObjectURL(url);
+  const fs=Math.max(14,Math.round(Math.min(W,H)*.03)),pad=Math.round(fs*.6),lh=Math.round(fs*1.3);
+  const lines=[`${(info.kind||"Photo").toUpperCase()}  ·  ${new Date(taken).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"})}`,
+    [stamp.addr,stamp.jobNo].filter(Boolean).join("  ·  "),
+    gps?`GPS ${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)}${from==="phone"?" (phone location)":""}`:"No GPS location saved with this photo"].filter(Boolean);
+  const bh=pad*2+lh*lines.length;g.fillStyle="rgba(15,24,38,.72)";g.fillRect(0,H-bh,W,bh);g.textBaseline="top";
+  lines.forEach((t,i)=>{g.fillStyle="#fff";g.font=`${i===0?"700 ":""}${fs}px "Source Sans 3",Arial,sans-serif`;g.fillText(t,pad,H-bh+pad+i*lh,W-pad*2)});
+  if(W>fs*32){g.font=`700 ${Math.round(fs*.8)}px Arial,sans-serif`;g.fillStyle="#F36A22";g.textAlign="right";g.fillText("YES, I CAN FIX THAT",W-pad,H-bh+pad+Math.round(fs*.15));g.textAlign="left"}
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.86));if(!blob)return null;
+  const f=new File([blob],(file.name||"photo").replace(/\.\w+$/,"")+".jpg",{type:"image/jpeg"});f._stamped=true;f._stamp=stamp;return f}
+function stampText(a){const s=a.stamp;if(!s)return "";return [a.kind,s.taken?fmtT(s.taken):"",s.addr,s.lat!=null?`GPS ${(+s.lat).toFixed(5)}, ${(+s.lng).toFixed(5)}${s.gpsFrom==="phone"?" (phone)":""}`:"no GPS"].filter(Boolean).join(" · ")}
+function photoThumb(a){const t=fileThumb(a,"photoDel");return t.slice(0,-6)+`<button class="tshare${a.share?" on":""}" data-act="photoShare" data-id="${esc(a.id)}" aria-pressed="${!!a.share}" title="${a.share?"The customer can see this in their portal":"Private: only the office sees this"}">${a.share?"👁 Customer":"Private"}</button></div>`}
+function portalText(c){return `Hi ${firstName(c)},\n\nYou can now see your jobs with us, before and after photos, and receipts online. You can also ask for a quote and choose how we contact you:\n\n${PORTAL_URL}\n\nSign in with ${c.email||"your email address"} and we'll email you a sign-in code. No password needed.\n\nThank you!\n${S.settings.company}\n${S.settings.phone}`}
 function fileThumb(a,del){const img=/^image\//.test(a.type);return `<div class="thumb">${img?`<a href="${blobUrl(a.id)}" target="_blank" rel="noopener"><img src="${blobUrl(a.id)}" alt="${esc(a.kind||a.name||"photo")}" loading="lazy"></a>`:`<a class="pdf" href="${blobUrl(a.id)}" target="_blank" rel="noopener">PDF<br><span>${esc((a.name||"").slice(0,18))}</span></a>`}${a.kind?`<span class="tk">${esc(a.kind)}</span>`:""}${del&&assetsFn?`<button class="tx" data-act="${del}" data-id="${esc(a.id)}" aria-label="Delete">×</button>`:""}</div>`}
 function expJobOpts(){return vals(S.quotes).filter(q=>q.status==="won").map(q=>{const j=S.jobs[q.id];const c=S.customers[q.customerId]||{};const p=propOf2(q);
   const date=j?(j.completed?j.completedAt:j.scheduledDate):"";
@@ -583,8 +622,10 @@ function vJobBack2(j,q){
   </div>
   <div class="cols"><div class="stack">
     <div class="card"><h2>Expenses for this job</h2>${ex.length?expTable(ex,false)+(Object.keys(byCat).length>1?`<p class="small" style="margin-top:8px">${Object.entries(byCat).map(([k,v])=>esc(k)+": <b>"+money2(v)+"</b>").join(" · ")}</p>`:""):`<p class="small muted">No expenses yet. Add materials, dump fees, rentals and anything else spent on this job.</p>`}</div>
-    <div class="card"><h2>Photos</h2>${assetsFn?`<div class="row" style="margin-bottom:10px"><select id="photoKind" style="width:auto">${opts(PHOTO_KINDS,S.ui.photoKind||"Before")}</select><label class="btn small primary" style="cursor:pointer">📷 Add photos<input type="file" accept="image/*" multiple data-upload="photo" hidden></label>${S.ui.uploading?'<span class="small muted">Uploading…</span>':""}</div>`:`<p class="small muted" style="margin-bottom:8px">Photos can be added when the Office is open from your Claude account.</p>`}
-      ${photos.length?`<div class="thumbs">${photos.map(a=>fileThumb(a,"photoDel")).join("")}</div>`:`<p class="small muted">Before, during and after photos for this job. Good ones can go on the website's Our Work page.</p>`}</div>
+    <div class="card"><h2>Photos</h2>${assetsFn?`<div class="row" style="margin-bottom:10px"><select id="photoKind" style="width:auto">${opts(PHOTO_KINDS,S.ui.photoKind||"Before")}</select><label class="btn small primary" style="cursor:pointer">📸 Take photo<input type="file" accept="image/*" capture="environment" data-upload="photo" hidden></label><label class="btn small" style="cursor:pointer">🖼 Add saved photos<input type="file" accept="image/*" multiple data-upload="photo" hidden></label>${S.ui.uploading?'<span class="small muted">Stamping and uploading…</span>':""}</div>`:`<p class="small muted" style="margin-bottom:8px">Photos can be added when the Office is open from your Claude account.</p>`}
+      ${photos.length?`<div class="thumbs">${photos.map(a=>photoThumb(a)).join("")}</div>${photos.some(a=>a.stamp)?`<details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:600">Photo stamps (date, time, GPS)</summary><div class="note-log" style="margin-top:6px">${photos.filter(a=>a.stamp).map(a=>`<div class="n">${esc(stampText(a))}${a.stamp.lat!=null?` · <a class="maplink" href="https://www.google.com/maps/search/?api=1&query=${a.stamp.lat},${a.stamp.lng}" target="_blank" rel="noopener">map</a>`:""}</div>`).join("")}</div></details>`:""}
+        <div class="row" style="margin-top:10px"><button class="btn small" data-act="photoShareAll">Let customer see all Before &amp; After</button><span class="small muted">${photos.filter(a=>a.share).length} of ${photos.length} shared</span></div>`:`<p class="small muted">Before, during and after photos for this job. Good ones can go on the website's Our Work page.</p>`}
+      <p class="small muted" style="margin-top:8px">Each photo gets the date, time, job address and GPS spot printed on it. Tap <b>Private</b> on a photo to let the customer see it in their portal.</p></div>
   </div><div class="stack"><div class="card"><h2>Hours</h2><div class="grid2"><label class="f"><span>Seth's estimate</span><input type="text" value="${esc(estHrs(q)||"—")}" disabled></label><label class="f"><span>Actual hours worked</span><input type="number" min="0" step="0.25" data-bind="actualHours" data-rerender="1" value="${esc(j.actualHours||"")}"></label></div>${hoursNote(j,q)}<p class="small muted" style="margin-top:6px">Only the office sees hours. Reports compare estimates to actuals by job type.</p></div>
     <div class="card"><h2>Add an expense</h2>${expForm(j.id)}</div></div></div>`}
 function vExpenses(){
@@ -607,7 +648,7 @@ function editJobQuote(j,fn,logText){const src=S.quotes[j.quoteId];if(!src)return
   if(q.mode==="flat"){q.lines=[{desc:q.flatScope||q.jobType||"Work as quoted",qty:1,price:+q.flatPrice||0}];q.mode="lines"}
   if(!q.original)q.original={lines:clone(src.mode==="flat"?q.lines:(src.lines||[])),price:qTotals(src).price,at:Date.now()};
   fn(q);if(logText){q.changes=(q.changes||[]).concat([{at:Date.now(),text:logText}]);if(S.settings.requireChangeApproval!==false)q.changeApproval={status:"pending",since:Date.now()}}q.updatedAt=Date.now();put("quotes",q.id,q,{quiet:true});
-  if(j.invoiced&&!j.paidFull&&!S.draft.hold){S.draft.hold=true;S.draft.holdAt=todayStr();S.draft.holdNote=(S.draft.holdNote?S.draft.holdNote+" ":"")+"Line items changed after invoicing. Update the invoice in QuickBooks.";touch()}
+  if(j.invoiced&&!j.paidFull&&!S.draft.hold){S.draft.hold=true;S.draft.holdAt=todayStr();S.draft.holdNote=(S.draft.holdNote?S.draft.holdNote+" ":"")+"Line items changed after the final bill went out. Send the customer the updated bill.";touch()}
   render()}
 function changeText(j,q){const c=S.customers[j.customerId]||{};const o=q.original;const t=qTotals(q);const L=[];
   const added=(q.lines||[]).filter(l=>l.added&&!l.removed&&(l.desc||l.price)),removed=(q.lines||[]).filter(l=>l.removed&&!l.added);
@@ -632,7 +673,7 @@ function workCard(j,q){if(!q||!q.id)return "";const lines=q.lines||[];const t=qT
   ${changed&&q.changeApproval&&q.changeApproval.status==="pending"?`<div class="banner" style="margin:10px 0 0;background:var(--warn-soft);color:var(--warn);border-color:transparent"><b>Customer needs to approve these changes.</b> If they're there with Seth, have them sign on his phone right now. Otherwise send the change summary and record their okay.
     <div class="row" style="margin-top:8px"><button class="btn small primary" data-act="chgSignOpen">Customer signs on this phone</button></div>
     <div class="row" style="margin-top:8px"><select id="apprHow" style="width:auto">${opts(["Replied APPROVE by text","Replied by email","Signed on site","Said yes in person or by phone"],"")}</select><button class="btn small good" data-act="chgApprove">Customer approved</button></div></div>`:changed&&q.changeApproval&&q.changeApproval.status==="approved"?`<p class="small" style="color:var(--good);font-weight:600;margin-top:8px">✓ Customer approved these changes ${fmtT(q.changeApproval.at)} (${esc(q.changeApproval.method||"")}${q.changeApproval.name?", "+esc(q.changeApproval.name):""}).</p>${q.changeApproval.sig?`<img src="${esc(q.changeApproval.sig)}" alt="Customer signature approving changes" style="max-width:260px;width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;margin-top:4px">`:""}`:""}
-  ${j.invoiced&&changed?`<p class="small" style="color:var(--bad);font-weight:600;margin-top:8px">This job was already invoiced. Update the invoice in QuickBooks to ${money2(t.price)}.</p>`:""}</div>`}
+  ${j.invoiced&&changed?`<p class="small" style="color:var(--bad);font-weight:600;margin-top:8px">The final bill already went out. Send the customer the updated total of ${money2(t.price)}.</p>`:""}</div>`}
 /* ---------- Week at a glance (dashboard) ---------- */
 const hStr=h=>String(Math.floor(h)).padStart(2,"0")+":"+(h%1?String(Math.round(h%1*60)).padStart(2,"0"):"00");
 const hLbl=h=>{const H=Math.floor(h),m=Math.round(h%1*60);return (H%12||12)+(m?":"+String(m).padStart(2,"0"):"")};
@@ -838,6 +879,7 @@ function vLead(){
       <label class="f" style="margin-bottom:12px"><span>What they need</span><textarea data-bind="request">${esc(l.request||"")}</textarea></label>
       <label class="f"><span>Timing</span><input type="text" data-bind="timing" value="${esc(l.timing||"")}" placeholder="ASAP, before Thanksgiving, flexible…"></label>
     </div>
+    ${(l.photos||[]).length?`<div class="card"><h2>Photos from the customer</h2><div class="thumbs">${l.photos.map(a=>fileThumb(a)).join("")}</div></div>`:""}
     ${st==="new"||st==="scheduled"?`<div class="card"><h2>Estimate visit <span class="small muted" style="text-transform:none;font-family:inherit;letter-spacing:0">(optional)</span></h2><p class="small muted" style="margin-bottom:10px">If Seth needs to see it first, book the visit here. The lead moves to Scheduled and shows on the calendar.</p>
       <div class="grid2"><label class="f"><span>Visit date</span><input type="date" data-bind="visitDate" data-rerender="1" value="${esc(l.visitDate||"")}"></label><label class="f"><span>Time</span><input type="text" data-bind="visitTime" data-rerender="1" value="${esc(l.visitTime||"")}" placeholder="e.g. 10 AM"></label></div>
       ${l.visitDate?`<div class="msg" id="visitMsg" style="margin-top:10px">${esc(visitText(l))}</div>${quietBanner()}<div class="row" style="margin-top:8px"><button class="btn navy small" data-act="copyText" data-src="visitMsg">Copy for text</button>${c.phone?`<a class="btn small" href="sms:${esc(digits(c.phone))}?&body=${encodeURIComponent(visitText(l))}" target="_blank" rel="noopener">Open in text app</a>`:""}<button class="btn small" data-act="emailVisit">Email</button>${consentPills(c)}</div>${noMsg?`<p class="small" style="color:var(--bad);font-weight:600;margin-top:6px">No text or email permission on file. Call instead.</p>`:""}
@@ -1052,8 +1094,8 @@ function vJob(){
     <div class="step ${cls(3)}"><div class="dot">${idx>3?"✓":"4"}</div><div><h3>Job day</h3>
       <label class="row small"><input type="checkbox" data-bind="completed" data-rerender="1"${j.completed?" checked":""}${j.scheduledDate?"":" disabled"}> Job complete</label>
       ${j.completed?`<div class="grid2" style="max-width:460px;margin-top:8px"><label class="f"><span>Finished on</span><input type="date" data-bind="completedAt" value="${esc(j.completedAt||"")}"></label><label class="f"><span>Actual hours worked</span><input type="number" min="0" step="0.25" data-bind="actualHours" data-rerender="1" value="${esc(j.actualHours||"")}" placeholder="Est. ${esc((q.internal&&q.internal.hours)||"?")}"></label></div>${hoursNote(j,q)}
-      <label class="f" style="margin-top:8px;max-width:220px"><span>Invoice number</span><input type="text" data-bind="invoiceNo" value="${esc(j.invoiceNo||"")}" placeholder="Match QuickBooks"></label>
-      <label class="row small" style="margin-top:8px"><input type="checkbox" data-bind="invoiced" data-rerender="1"${j.invoiced?" checked":""}> Invoiced in QuickBooks</label>`:""}
+      <label class="f" style="margin-top:8px;max-width:220px"><span>Invoice number</span><input type="text" data-bind="invoiceNo" value="${esc(j.invoiceNo||"")}" placeholder="e.g. INV-1001"></label>
+      <label class="row small" style="margin-top:8px"><input type="checkbox" data-bind="invoiced" data-rerender="1"${j.invoiced?" checked":""}> Final bill sent to the customer</label>`:""}
     </div></div>
     <div class="step ${cls(4)}"><div class="dot">${idx>4?"✓":"5"}</div><div><h3>Review request (NiceJob)</h3>
       <p class="small">NiceJob sends the review request when the job is closed, and new reviews show up on the website. Check the box once this customer is in NiceJob.</p>
@@ -1071,7 +1113,7 @@ function vJob(){
       <p class="small" style="margin-top:8px">When the invoice is fixed, uncheck the box to release the hold.</p>`:(j.holdLog&&j.holdLog.length?`<p class="small muted" style="margin-top:6px">Last hold released ${esc(fmtD(j.holdLog[j.holdLog.length-1].released))}${j.holdLog[j.holdLog.length-1].note?": “"+esc(j.holdLog[j.holdLog.length-1].note)+"”":""}</p>`:"")}
     </div>
     <div class="card"><h2>Job</h2><p><b>${esc(q.jobType||"")}</b> · <span class="num">${money(qTotals(q).price)}</span></p><p class="small" style="margin-top:4px">${mapLink(prop)}</p>${prop.address?`<a class="btn small primary" href="${esc(mapUrl(prop))}" target="_blank" rel="noopener" style="margin-top:8px">Navigate</a>`:""}${prop.onsiteName?`<p class="small">On site: ${esc(prop.onsiteName)} ${esc(prop.onsitePhone||"")}</p>`:""}<p class="small" style="margin-top:6px">${esc(q.request||"")}</p><div class="row" style="margin-top:10px"><button class="btn small" data-act="go" data-view="quote" data-id="${esc(j.quoteId)}">Open quote</button><button class="btn small" data-act="go" data-view="customer" data-id="${esc(j.customerId)}">Customer</button></div></div>
-    <div class="card"><h2>Payments</h2>${(()=>{const t=qTotals(q);const M=["Card","Cash","Check","Venmo","QuickBooks"];return `
+    <div class="card"><h2>Payments</h2>${(()=>{const t=qTotals(q);const M=["Card (Stripe)","Cash","Check","Other"];return `
       <label class="row small" style="font-weight:700"><input type="checkbox" data-bind="depositPaid" data-rerender="1"${j.depositPaid?" checked":""}> Deposit received</label>
       ${j.depositPaid?`<div class="grid2" style="margin-top:8px"><label class="f"><span>Amount</span><input type="number" min="0" data-bind="depositAmt" value="${esc(j.depositAmt||Math.round(t.deposit*100)/100)}"></label><label class="f"><span>Date</span><input type="date" data-bind="depositDate" value="${esc(j.depositDate||"")}"></label><label class="f"><span>How</span><select data-bind="depositMethod">${opts(M,j.depositMethod,"—")}</select></label></div><div style="margin-top:8px"><button class="btn small navy" data-act="emailPay" data-kind="deposit">Email deposit receipt</button></div>`:`<p class="small muted">Deposit due: ${money2(t.deposit)} (${t.dep}%)</p>`}
       <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
@@ -1168,6 +1210,7 @@ function vCustomer(){
       ${clog.length?`<details style="margin-top:12px"><summary class="small" style="cursor:pointer;font-weight:600">History (${clog.length})</summary><div class="note-log" style="margin-top:8px">${clog.map(e=>`<div class="n"><div class="w">${new Date(e.t).toLocaleString("en-US")}</div>${CH[e.ch]}: ${e.ok===true?"Yes":e.ok===false?"No":"Cleared"}${e.method?" · "+esc(e.method):""}</div>`).join("")}</div></details>`:""}
       <p class="small muted" style="margin-top:10px">Every change is saved with the date and time, and all of it is in the consent spreadsheet from the Customers page.</p>
     </div>
+    ${window.__sb?`<div class="card"><h2>Customer portal</h2>${c.email?`<p class="small">${esc(firstName(c))} can sign in with <b>${esc(c.email)}</b> to see jobs, the photos you share, receipts, ask for a quote and change contact permissions.</p><div class="row" style="margin-top:8px"><button class="btn small navy" data-act="portalInvite">Email portal invite</button><button class="btn small" data-act="copyPortal">Copy portal link</button></div>`:`<p class="small muted">Add an email address to give them portal access.</p>`}<label class="row small" style="margin-top:10px"><input type="checkbox" data-bind="portalOff" data-rerender="1"${c.portalOff?" checked":""}> Turn off portal access for this customer</label></div>`:""}
     <div class="card"><h2>Flags</h2><div class="flags">
       <label class="flag"><input type="checkbox" data-bind="doNotContact" data-rerender="1"${c.doNotContact?" checked":""}><span><b>Do not contact</b></span></label>
       ${c.doNotContact?`<input type="text" data-bind="dncNote" value="${esc(c.dncNote||"")}" placeholder="Note (optional)">`:""}
@@ -1640,7 +1683,7 @@ const ACT={
   markSent(){if(!qTotals(S.draft).price){toast("Add a price before marking the quote sent.");return}if((+S.draft.depositPct||0)<50&&!S.draft.depositNote){toast("Add a reason for the deposit under 50% first.");return}statusChange({status:"sent",sentAt:Date.now()});toast("Marked as sent")},
   depositModal(){const q=S.draft;const t=qTotals(q);if(!t.price){toast("Add a price first.");return}
     const m=$("#modal");m.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-label="Deposit received"><h2 style="font-size:24px;text-transform:uppercase">Deposit received</h2><p class="small muted">Recording the deposit moves this quote to Approved. It becomes a job when you place it on the Calendar.</p>
-      <div class="grid3"><label class="f"><span>Amount</span><input type="number" min="0" id="dep-amt" value="${Math.round(t.deposit*100)/100}"></label><label class="f"><span>Date</span><input type="date" id="dep-date" value="${todayStr()}"></label><label class="f"><span>How</span><select id="dep-how">${opts(["Card","Cash","Check","Venmo","QuickBooks"],"","—")}</select></label></div>
+      <div class="grid3"><label class="f"><span>Amount</span><input type="number" min="0" id="dep-amt" value="${Math.round(t.deposit*100)/100}"></label><label class="f"><span>Date</span><input type="date" id="dep-date" value="${todayStr()}"></label><label class="f"><span>How</span><select id="dep-how">${opts(["Card (Stripe)","Cash","Check","Other"],"","—")}</select></label></div>
       <div class="row"><button class="btn good" data-act="confirmDeposit">Approve quote</button><button class="btn" data-act="closeModal">Cancel</button></div></div>`;m.hidden=false},
   confirmDeposit(){const amt=+$("#dep-amt").value||0,date=$("#dep-date").value||todayStr(),how=$("#dep-how").value;$("#modal").hidden=true;
     const t=qTotals(S.draft);if(amt<t.price*0.5-0.01&&!S.draft.depositNote)toast("Note: that deposit is under 50%.");
@@ -1709,6 +1752,10 @@ const ACT={
     const id=uid("e");put("expenses",id,{id,date:f.date||todayStr(),amount:amt,vendor:f.vendor.trim(),category:f.category,method:f.method,note:f.note.trim(),receipts:f.receipts,jobId:f.jobId||"",createdAt:Date.now()},{quiet:true});
     S.ui.exp=Object.assign(newExpForm(f.jobId),{fixed:f.fixed,forJob:f.forJob});render();toast("Expense saved"+(f.receipts.length?"":". No receipt attached."))},
   expDel(d){const e=S.expenses[d.id];if(!e)return;confirmBox(`Delete this ${money2(+e.amount||0)} expense${(e.receipts||[]).length?" and its receipt":""}?`,()=>{(e.receipts||[]).forEach(a=>assetsFn&&assetsFn.delete(a.id).catch(()=>{}));remove("expenses",e.id)},"Delete")},
+  photoShare(d){const j=S.draft;const a=(j.photos||[]).find(x=>x.id===d.id);if(!a)return;a.share=!a.share;touch();flush();render();toast(a.share?"The customer can see this photo":"Photo is private again")},
+  photoShareAll(){const j=S.draft;let n=0;(j.photos||[]).forEach(a=>{if((a.kind==="Before"||a.kind==="After")&&!a.share){a.share=true;n++}});touch();flush();render();toast(n?n+" photo"+(n>1?"s":"")+" shared with the customer":"All Before & After photos are already shared")},
+  portalInvite(){flush();const c=S.draft;if(!c.email){toast("Add their email address first.");return}emailModal(c,`Your account with ${S.settings.company}`,portalText(c),null)},
+  copyPortal(){copy(PORTAL_URL)},
   photoDel(d){const j=S.draft;confirmBox("Delete this photo?",()=>{j.photos=(j.photos||[]).filter(a=>a.id!==d.id);touch();flush();if(assetsFn)assetsFn.delete(d.id).catch(()=>{});render()},"Delete")},
   exportExp(d){const y=d.y;const ex=vals(S.expenses).filter(e=>(e.date||"").startsWith(y)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));const abs=id=>{try{return new URL(blobUrl(id),location.href).href}catch(x){return blobUrl(id)}};
     const tot={};ex.forEach(e=>{const k=e.category||"Uncategorized";tot[k]=(tot[k]||0)+(+e.amount||0)});
@@ -1880,10 +1927,17 @@ document.addEventListener("keydown",e=>{
   if(e.target.id==="tagIn"&&e.key==="Enter"){e.preventDefault();ACT.tagAdd()}
 });
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")$("#modal").hidden=true});
-async function onUpload(el){const kind=el.dataset.upload;const files=[...el.files||[]];el.value="";if(!files.length)return;
-  S.ui.uploading=true;render();const up=await uploadFiles(files);S.ui.uploading=false;
+async function onUpload(el){const kind=el.dataset.upload;let files=[...el.files||[]];el.value="";if(!files.length)return;
+  const pk=($("#photoKind")||{}).value||S.ui.photoKind||"Before";if(kind==="photo")S.ui.photoKind=pk;
+  S.ui.uploading=true;render();
+  if(kind==="photo"&&S.draft&&S.draftColl==="jobs"&&S.settings.photoStamp!==false){const j=S.draft,q=S.quotes[j.quoteId];
+    const exs=[];for(const f of files){let ex={};try{ex=readExif(await f.slice(0,262144).arrayBuffer())}catch(e){}exs.push(ex)}
+    const needHere=exs.some((ex,i)=>ex.lat==null&&Math.abs(Date.now()-(ex.taken||files[i].lastModified||Date.now()))<30*60000);
+    const info={kind:pk,addr:addrLine(propOf2(q)),jobNo:jNo(j),here:needHere?await hereNow():null};
+    const out=[];for(let i=0;i<files.length;i++){out.push((await stampPhoto(files[i],exs[i],info))||files[i])}files=out}
+  const up=await uploadFiles(files);S.ui.uploading=false;
   if(kind==="receipt"&&S.ui.exp)S.ui.exp.receipts=S.ui.exp.receipts.concat(up);
-  if(kind==="photo"&&S.draft&&S.draftColl==="jobs"){const k=($("#photoKind")||{}).value||S.ui.photoKind||"Before";S.ui.photoKind=k;S.draft.photos=(S.draft.photos||[]).concat(up.map(a=>Object.assign(a,{kind:k})));touch();flush()}
+  if(kind==="photo"&&S.draft&&S.draftColl==="jobs"){const k=pk;S.draft.photos=(S.draft.photos||[]).concat(up.map(a=>Object.assign(a,{kind:k})));touch();flush()}
   render();if(up.length)toast(up.length+(up.length>1?" files":" file")+" uploaded")}
 function onField(e){
   const el=e.target;
