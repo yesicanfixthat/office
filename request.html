@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Request a Quote · Yes, I Can Fix That</title>
+<meta name="description" content="Ask Yes, I Can Fix That for a quote on home repairs in Weber County and Ogden Valley, Utah.">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+:root{--navy:#1F4575;--orange:#F36A22;--mid:#36649D;--sage:#CEDBD7;--ink:#15233A;--muted:#5A6576;--line:#DCE2EA;--bg:#F2F4F8;--surface:#fff;--good:#1E7B4A;--good-soft:#E3F2EA;--bad:#B42318;--warn-soft:#FDEBDD}
+@media (prefers-color-scheme: dark){:root{--ink:#E8EEF6;--muted:#A7B3C3;--line:#2B3A52;--bg:#0F1826;--surface:#16223A;--good:#4CC38A;--good-soft:#173A2A;--bad:#F2877D;--warn-soft:#3A2A1C}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
+a{color:var(--mid)}
+.top{background:var(--navy);color:#fff}
+.top .in{max-width:860px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top img{height:44px;width:auto;background:#fff;border-radius:8px;padding:4px 8px;display:block}
+.top .who{font-size:13px;text-align:right;color:#cfd8e6}
+.top .who button{background:none;border:0;color:#fff;text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+nav{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav .in{max-width:860px;margin:0 auto;padding:0 8px;display:flex;overflow-x:auto}
+nav button{flex:none;background:none;border:0;border-bottom:3px solid transparent;padding:12px 12px 9px;font:600 15px "Source Sans 3",sans-serif;color:var(--muted);cursor:pointer}
+nav button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--orange)}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px}
+h1,h2,h3{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px;color:var(--ink)}
+h1{font-size:30px}h2{font-size:22px}h3{font-size:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.muted{color:var(--muted)}.small{font-size:14px}
+.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.pill.warn{background:var(--warn-soft);color:#9A4A12;border-color:transparent}
+@media (prefers-color-scheme: dark){.pill.warn{color:#F6B58A}}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.btn{display:inline-block;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 16px;font:700 16px "Source Sans 3",sans-serif;cursor:pointer;text-decoration:none;text-align:center}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.block{display:block;width:100%}
+.btn[disabled]{opacity:.55;cursor:default}
+label.f{display:block;font-weight:700;font-size:14px;margin:12px 0 6px}
+input[type=text],input[type=email],select,textarea{width:100%;font:16px "Source Sans 3",sans-serif;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+textarea{min-height:110px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.r{text-align:right;white-space:nowrap}
+.tot td{border:0;font-weight:700}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.ph{position:relative;border-radius:8px;overflow:hidden;background:var(--bg);aspect-ratio:4/3;border:0;padding:0;cursor:zoom-in}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{position:absolute;left:6px;top:6px;background:rgba(21,35,58,.8);color:#fff;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px}
+.err{color:var(--bad);font-weight:700;margin-top:10px}
+.ok{color:var(--good);font-weight:700;margin-top:10px}
+.gate{min-height:70vh;display:flex;align-items:center;justify-content:center}
+.gate .card{max-width:400px;width:100%;text-align:center}
+.gate img{width:220px;max-width:80%;margin:0 auto 10px;display:block}
+.consent{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.consent:last-child{border:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.seg button{border:0;background:var(--surface);color:var(--ink);padding:8px 14px;font:700 14px "Source Sans 3",sans-serif;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:6px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+.lightbox img{max-width:100%;max-height:82vh;border-radius:6px}
+.lightbox .cap{color:#fff;margin-top:10px;font-size:14px;text-align:center}
+.lightbox button{position:absolute;top:10px;right:14px;background:none;border:0;color:#fff;font-size:34px;cursor:pointer}
+.receipt{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  .top,nav,.noprint,.lightbox{display:none!important}
+  .wrap>*:not(.receipt){display:none!important}
+  .receipt{display:block!important}
+  .card{border:0;padding:0}
+}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:8px 0;font-size:15px}.chk input{width:20px;height:20px;margin-top:2px;flex:none}.hp{position:absolute;left:-5000px;width:1px;height:1px;overflow:hidden}.req{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="top"><div class="in"><a href="https://yesicanfixthat.github.io/Utah/"><img src="logo.png" alt="Yes, I Can Fix That"></a><div class="who"><a href="tel:8019174442" style="color:#fff">(801) 917-4442</a></div></div></div>
+<div class="wrap" id="app">
+<h1>Request a quote</h1>
+<p class="muted">Tell us what needs fixing. We'll call you to set up a time for Seth to take a look, or give you a price if the photos tell us enough.</p>
+<form id="f" class="card" novalidate>
+  <div class="grid2">
+    <label class="f">First name <span class="req">*</span><input type="text" id="fn" autocomplete="given-name" required></label>
+    <label class="f">Last name <span class="req">*</span><input type="text" id="ln" autocomplete="family-name" required></label>
+    <label class="f">Phone <span class="req">*</span><input type="text" id="ph" inputmode="tel" autocomplete="tel" required></label>
+    <label class="f">Email<input type="email" id="em" autocomplete="email"></label>
+  </div>
+  <label class="f">Street address of the work <span class="req">*</span><input type="text" id="ad" autocomplete="street-address" required></label>
+  <div class="grid2">
+    <label class="f">City<input type="text" id="tw" autocomplete="address-level2"></label>
+    <label class="f">Zip<input type="text" id="zp" inputmode="numeric" autocomplete="postal-code" maxlength="10"></label>
+  </div>
+  <label class="f">Type of work<select id="jt"><option value="">Pick one (optional)</option></select></label>
+  <label class="f">What do you need done? <span class="req">*</span><textarea id="ds" placeholder="For example: replace the ceiling fan in the living room and patch two holes in the hallway drywall."></textarea></label>
+  <label class="f">When would you like it done?<input type="text" id="tm" placeholder="As soon as possible, next month, flexible…"></label>
+  <label class="f">Photos (up to 8, optional)</label>
+  <label class="btn" style="cursor:pointer">📷 Add photos<input type="file" id="fl" accept="image/*" multiple hidden></label>
+  <div class="thumbs" id="th"></div>
+  <h3 style="margin-top:18px">How may we contact you?</h3>
+  <p class="small muted" style="margin:0 0 4px">Check any that are OK. You can change this anytime by telling us.</p>
+  <label class="chk"><input type="checkbox" id="okc" checked><span>OK to <b>call</b> me about this request and my appointments.</span></label>
+  <label class="chk"><input type="checkbox" id="okt"><span>OK to <b>text</b> me appointment reminders and the occasional check-in from Yes, I Can Fix That. Message and data rates may apply. Reply STOP to opt out.</span></label>
+  <label class="chk"><input type="checkbox" id="oke"><span>OK to <b>email</b> me quotes, receipts and appointment reminders.</span></label>
+  <label class="chk"><input type="checkbox" id="okv"><span>OK to leave me a <b>recorded voicemail</b> message.</span></label>
+  <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" id="hp" tabindex="-1" autocomplete="off"></label></div>
+  <button class="btn primary block" id="go" type="submit" style="margin-top:16px">Send request</button>
+  <div id="msg" role="status"></div>
+</form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  const sb=window.supabase.createClient("https://yhcinsqiqernsqussjgb.supabase.co","sb_publishable_CGRtG8cY_M8vEnnJOSX_Cg_z3jUVkCD",{auth:{persistSession:false}});
+  const $=id=>document.getElementById(id);const T0=Date.now();const photos=[];
+  ["Multiple repairs","Doors & Windows","Drywall & Paint","Flooring","Tile & Backsplash","Carpentry & Trim","Mounting & Installs","Fixture Repairs","Outdoor & Fences","Other"].forEach(t=>{const o=document.createElement("option");o.textContent=t;$("jt").appendChild(o)});
+  async function shrink(file){try{const url=URL.createObjectURL(file);const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    const k=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);return await new Promise(r=>c.toBlob(r,"image/jpeg",.85))}catch(e){return null}}
+  $("fl").onchange=async()=>{for(const f of [...$("fl").files]){if(photos.length>=8)break;const b=await shrink(f);if(b){photos.push(b);const i=document.createElement("img");i.src=URL.createObjectURL(b);i.alt="Photo "+photos.length;$("th").appendChild(i)}}$("fl").value=""};
+  const say=(t,bad)=>{$("msg").className=bad?"err":"ok";$("msg").textContent=t};
+  $("f").onsubmit=async e=>{e.preventDefault();
+    const v=id=>$(id).value.trim();
+    if($("hp").value||Date.now()-T0<3000){say("Thanks! We got your request.");return}
+    if(!v("fn")||!v("ln")){say("Please add your first and last name.",true);return}
+    if(v("ph").replace(/\D/g,"").length<10){say("Please add a phone number we can reach you at.",true);return}
+    if(v("em")&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("em"))){say("That email address doesn't look right.",true);return}
+    if(v("ad").length<4){say("Please add the street address of the work.",true);return}
+    if(v("ds").length<5){say("Please tell us a little about the work you need.",true);return}
+    const btn=$("go");btn.disabled=true;btn.textContent="Sending…";
+    const paths=[];for(const b of photos){const p="requests/"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2))+".jpg";const {error}=await sb.storage.from("office-files").upload(p,b,{contentType:"image/jpeg"});if(!error)paths.push(p)}
+    const {error}=await sb.from("web_requests").insert({first_name:v("fn"),last_name:v("ln"),phone:v("ph"),email:v("em"),address:v("ad"),town:v("tw"),zip:v("zp"),job_type:$("jt").value,description:v("ds").slice(0,3900),timing:v("tm").slice(0,200),ok_call:$("okc").checked,ok_text:$("okt").checked,ok_email:$("oke").checked,ok_voicemail:$("okv").checked,photo_paths:paths});
+    if(error){btn.disabled=false;btn.textContent="Send request";say("Something went wrong. Please try again, or call us at (801) 917-4442.",true);return}
+    $("app").innerHTML=`<div class="card" style="border-color:var(--good);text-align:center;margin-top:20px"><h1 style="color:var(--good)">Thank you!</h1><p>We got your request${paths.length?" and "+paths.length+" photo"+(paths.length>1?"s":""):""}. We'll call you soon to set up a time.</p><p class="small muted">Need us sooner? Call <a href="tel:8019174442">(801) 917-4442</a>.</p><p><a class="btn" href="https://yesicanfixthat.github.io/Utah/">Back to our website</a></p></div>`;window.scrollTo(0,0)};
+})();
+</script>
+</body>
+</html>

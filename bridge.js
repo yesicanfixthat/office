@@ -5,7 +5,7 @@
   const SUPABASE_URL="https://yhcinsqiqernsqussjgb.supabase.co";
   const SUPABASE_KEY="sb_publishable_CGRtG8cY_M8vEnnJOSX_Cg_z3jUVkCD";
   const BUCKET="office-files";
-  const TABLES=["customers","leads","quotes","jobs","expenses","settings","meta"];
+  const TABLES=["customers","leads","quotes","jobs","expenses","mileage","settings","meta"];
 
   const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"pkce"}});
   window.__sb=sb;
@@ -54,7 +54,7 @@
   })();
   sb.auth.onAuthStateChange(async(ev,session)=>{if(ev==="SIGNED_IN"&&session){if(await checkStaff()){gate.hidden=true;resolveAuth(session)}else showGate(`${session.user.email} isn't on the staff list. Ask Shauna to add you.`,true)}if(ev==="SIGNED_OUT")location.reload()});
   function addSignOut(where){if(!where||where.querySelector(".signout"))return;const b=document.createElement("button");b.className="signout";b.type="button";b.textContent="Sign out";b.onclick=()=>sb.auth.signOut();where.appendChild(b)}
-  authReady.then(s=>{const side=document.querySelector(".side");if(side){const who=document.createElement("div");who.className="brand-sub";who.style.marginTop="12px";who.textContent=s.user.email;side.appendChild(who);addSignOut(side)}});
+  authReady.then(s=>{window.__me=s.user.email;const side=document.querySelector(".side");if(side){const who=document.createElement("div");who.className="brand-sub";who.style.marginTop="12px";who.textContent=s.user.email;side.appendChild(who);addSignOut(side)}});
 
   /* ---------- Database (same calls the Office already uses) ---------- */
   const errOf=e=>{const c=e&&(e.code||"");const m=(e&&e.message)||"";return {code:/42501|permission|row-level/i.test(c+m)?"invalid_argument":/JWT|auth/i.test(m)?"revoked":"unavailable",message:m}};

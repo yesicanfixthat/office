@@ -292,8 +292,8 @@ const DEFAULTS={
 };
 
 /* ---------- State ---------- */
-const S={customers:{},leads:{},expenses:{},quotes:{},jobs:{},settings:Object.assign({},DEFAULTS),
-  loaded:{customers:false,leads:false,expenses:false,quotes:false,jobs:false},
+const S={customers:{},leads:{},expenses:{},mileage:{},quotes:{},jobs:{},settings:Object.assign({},DEFAULTS),
+  loaded:{customers:false,leads:false,expenses:false,quotes:false,jobs:false,mileage:false},
   insights:null, view:{name:"dash"}, draft:null, draftColl:null, dirty:false, ui:{qtab:"customer",range:"30",custQ:"",quoteQ:"",leadQ:"",intake:null}};
 let assetsFn=null, db=null, dbState="loading", readOnly=false, sampleFn=null, checkCtl=null, dlFn=null;
 
@@ -372,12 +372,13 @@ async function connect(){
   try{use=window.claude&&window.claude.use?await window.claude.use("db"):null}catch(e){use=null}
   if(!use){dbState="none";for(const k in S.loaded)S.loaded[k]=true;render();return}
   db=use;dbState="ready";
-  ["customers","leads","quotes","jobs","expenses"].forEach(coll=>{
+  ["customers","leads","quotes","jobs","expenses","mileage"].forEach(coll=>{
     db.collection(coll).onSnapshot(snap=>{
       const m={};snap.docs.forEach(d=>{const x=d.data();if(x)m[d.id]=Object.assign({},x,{id:d.id})});
       S[coll]=m;S.loaded[coll]=true;scheduleRender();
     },e=>{S.loaded[coll]=true;toast(errText(e));render()});
   });
+  db.doc("meta/automation").onSnapshot(s=>{if(s.exists)S.automation=s.data();scheduleRender()},()=>{});
   db.doc("meta/insights").onSnapshot(s=>{if(s.exists)S.insights=s.data();scheduleRender()},()=>{});
   db.doc("settings/main").onSnapshot(s=>{if(s.exists)S.settings=Object.assign({},DEFAULTS,s.data());scheduleRender()},()=>{});
 }
@@ -628,6 +629,21 @@ function vJobBack2(j,q){
       <p class="small muted" style="margin-top:8px">Each photo gets the date, time, job address and GPS spot printed on it. Tap <b>Private</b> on a photo to let the customer see it in their portal.</p></div>
   </div><div class="stack"><div class="card"><h2>Hours</h2><div class="grid2"><label class="f"><span>Seth's estimate</span><input type="text" value="${esc(estHrs(q)||"—")}" disabled></label><label class="f"><span>Actual hours worked</span><input type="number" min="0" step="0.25" data-bind="actualHours" data-rerender="1" value="${esc(j.actualHours||"")}"></label></div>${hoursNote(j,q)}<p class="small muted" style="margin-top:6px">Only the office sees hours. Reports compare estimates to actuals by job type.</p></div>
     <div class="card"><h2>Add an expense</h2>${expForm(j.id)}</div></div></div>`}
+/* ---------- Mileage and bookkeeper export ---------- */
+const MILE_RATES=[{from:"2025-01-01",rate:0.70},{from:"2026-01-01",rate:0.725},{from:"2026-07-01",rate:0.76}]; // IRS business standard mileage rates
+function mileRate(d){let r=MILE_RATES[0].rate;MILE_RATES.forEach(x=>{if((d||"")>=x.from)r=x.rate});return r}
+function lastMonthKey(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function mileCard(y){const f=S.ui.mi||(S.ui.mi={date:todayStr(),miles:"",trip:"",jobId:""});
+  const list=vals(S.mileage).filter(m=>(m.date||"").startsWith(y)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const miles=list.reduce((a,m)=>a+(+m.miles||0),0),ded=list.reduce((a,m)=>a+(+m.miles||0)*mileRate(m.date),0);
+  const jobs=expJobOpts().sort((a,b)=>(b.open-a.open)||b.sort.localeCompare(a.sort)).slice(0,40);
+  return `<div class="card"><div class="spread"><h2>Mileage · ${y}</h2><span class="small"><b>${Math.round(miles*10)/10} miles</b> · about <b>${money(ded)}</b> at the IRS rate</span></div>
+    <div class="grid2"><label class="f"><span>Date</span><input type="date" data-ib="mi.date" value="${esc(f.date)}"></label><label class="f"><span>Miles</span><input type="number" min="0" step="0.1" data-ib="mi.miles" value="${esc(f.miles)}" placeholder="e.g. 18.4"></label>
+    <label class="f"><span>Trip</span><input type="text" data-ib="mi.trip" value="${esc(f.trip)}" placeholder="Home Depot to Parry job, estimate visit…"></label>
+    <label class="f"><span>Job (optional)</span><select data-ib="mi.jobId"><option value="">Not for one job</option>${jobs.map(o=>`<option value="${esc(o.id)}"${o.id===f.jobId?" selected":""}>${esc(o.title)}</option>`).join("")}</select></label></div>
+    <div class="row" style="margin-top:10px"><button class="btn primary" data-act="miSave">Save trip</button></div>
+    ${list.length?`<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Trip</th><th>Job</th><th class="r">Miles</th><th></th></tr></thead><tbody>${list.slice(0,25).map(m=>{const o=m.jobId?expJobOpt(m.jobId):null;return `<tr><td class="small">${fmtD(m.date)}</td><td>${esc(m.trip||"")}</td><td class="small">${o?esc(o.title.split(" · ").slice(0,2).join(" · ")):'<span class="muted">—</span>'}</td><td class="r num">${+m.miles||0}</td><td><button class="btn small bad" data-act="miDel" data-id="${esc(m.id)}" aria-label="Delete trip">×</button></td></tr>`}).join("")}</tbody></table></div>${list.length>25?`<p class="small muted">Showing the latest 25. All ${list.length} are in the bookkeeper export.</p>`:""}`:""}
+    <p class="small muted" style="margin-top:8px">IRS business rate: 72.5¢ a mile Jan–Jun 2026, 76¢ Jul–Dec 2026. You can take the mileage rate <b>or</b> actual vehicle costs (fuel, repairs) for a vehicle, not both. Ask your bookkeeper which one you use.</p></div>`}
 function vExpenses(){
   const years=[...new Set(vals(S.expenses).map(e=>(e.date||"").slice(0,4)).filter(Boolean).concat([String(new Date().getFullYear())]))].sort().reverse();
   const y=S.ui.expYear&&years.includes(S.ui.expYear)?S.ui.expYear:years[0];const cat=S.ui.expCat||"";
@@ -635,11 +651,11 @@ function vExpenses(){
   const tot={};inY.forEach(e=>{const k=e.category||"Uncategorized";tot[k]=tot[k]||{n:0,amt:0,job:0,over:0,noRc:0};tot[k].n++;tot[k].amt+=+e.amount||0;if(e.jobId)tot[k].job+=+e.amount||0;else tot[k].over+=+e.amount||0;if(!(e.receipts||[]).length)tot[k].noRc++});
   const rows=Object.entries(tot).sort((a,b)=>b[1].amt-a[1].amt);const all=rows.reduce((a,[,v])=>a+v.amt,0);const noRc=inY.filter(e=>!(e.receipts||[]).length).length;
   const months=[...Array(12)].map((_,i)=>{const k=y+"-"+String(i+1).padStart(2,"0");return {k,v:inY.filter(e=>e.date.startsWith(k)).reduce((a,e)=>a+(+e.amount||0),0)}});const maxM=Math.max(1,...months.map(m=>m.v));
-  return head("Expenses",null,`<select data-ib="expYear" style="width:auto">${years.map(x=>`<option${x===y?" selected":""}>${x}</option>`).join("")}</select><button class="btn" data-act="exportExp" data-y="${y}">Download ${y} for taxes</button>`)
+  return head("Expenses",null,`<select data-ib="expYear" style="width:auto">${years.map(x=>`<option${x===y?" selected":""}>${x}</option>`).join("")}</select><button class="btn" data-act="exportExp" data-y="${y}">Download ${y} for taxes</button><input type="month" id="bkMonth" value="${esc(S.ui.bkMonth||lastMonthKey())}" style="width:auto" aria-label="Month for the bookkeeper export"><button class="btn primary" data-act="bookExport">Bookkeeper export</button>`)
   +`<div class="stack">
     <div class="card"><h2>${y} totals by tax category</h2>${rows.length?`<div class="tablewrap"><table><thead><tr><th>Category</th><th class="r">Count</th><th class="r">On jobs</th><th class="r">Overhead</th><th class="r">Total</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr class="click" data-act="expCatPick" data-c="${esc(k)}" tabindex="0"${cat===k?' style="background:var(--accent-soft)"':""}><td>${esc(k)}${v.noRc?` <span class="pill lost">${v.noRc} no receipt</span>`:""}</td><td class="r num">${v.n}</td><td class="r num">${money2(v.job)}</td><td class="r num">${money2(v.over)}</td><td class="r num"><b>${money2(v.amt)}</b></td></tr>`).join("")}<tr style="font-weight:700"><td>Total</td><td class="r num">${inY.length}</td><td class="r num">${money2(rows.reduce((a,[,v])=>a+v.job,0))}</td><td class="r num">${money2(rows.reduce((a,[,v])=>a+v.over,0))}</td><td class="r num">${money2(all)}</td></tr></tbody></table></div>
       ${noRc?`<p class="small" style="color:var(--bad);font-weight:600;margin-top:8px">${noRc} expense${noRc>1?"s have":" has"} no receipt attached.</p>`:""}<p class="small muted" style="margin-top:8px">Click a category to see its expenses. Categories can be changed in Settings; check them with your tax preparer.</p>`:`<div class="empty">No expenses in ${y} yet.</div>`}</div>
-    <div class="cols"><div class="stack"><div class="card"><h2>Add an expense</h2>${expForm("")}</div></div><div class="stack"><div class="card"><h2>By month</h2><div class="vbars">${months.map(m=>`<div class="b"><b>${m.v?money(m.v):""}</b><i style="height:${m.v/maxM*100}%"></i><span>${new Date(+y,+m.k.slice(5)-1,1).toLocaleDateString("en-US",{month:"short"})}</span></div>`).join("")}</div></div></div></div>
+    <div class="cols"><div class="stack"><div class="card"><h2>Add an expense</h2>${expForm("")}</div>${mileCard(y)}</div><div class="stack"><div class="card"><h2>By month</h2><div class="vbars">${months.map(m=>`<div class="b"><b>${m.v?money(m.v):""}</b><i style="height:${m.v/maxM*100}%"></i><span>${new Date(+y,+m.k.slice(5)-1,1).toLocaleDateString("en-US",{month:"short"})}</span></div>`).join("")}</div></div></div></div>
     <div class="card"><h2>${cat?esc(cat):"All expenses"} · ${y} <span class="pill">${list.length}</span></h2>${cat?`<button class="linkish small" data-act="expCatPick" data-c="">Show all categories</button>`:""}${list.length?expTable(list,true):`<p class="small muted">None yet.</p>`}</div>
   </div>`}
 /* ---------- On-site changes to a job's line items ---------- */
@@ -722,7 +738,7 @@ function wkOpenModal(d){const opts2=needsDate();const dayZips=new Set(crewList()
 function tplTagsFor(q){const txt=" "+quoteText4Match(q).replace(/[^a-z0-9 ]/g," ")+" ";return tplList().filter(t=>(t.keywords||[]).some(k=>{const kk=" "+String(k).toLowerCase().replace(/[^a-z0-9 ]/g," ").trim()+" ";return kk.trim()&&(txt.includes(kk)||txt.includes(kk.trimEnd()+"s "))})).map(t=>t.name)}
 function jobAutoTags(j){const q=S.quotes[j.quoteId]||{};const T=[];if(q.jobType)T.push(q.jobType);tplTagsFor(q).forEach(x=>T.push(x));
   const p=propOf2(q);if(p.town)T.push(p.town);if(p.zip)T.push(p.zip);
-  if(jobDays(j).length>1)T.push("Multi-day");if(q.original&&(q.changes||[]).length)T.push("Changed on site");
+  if(jobDays(j).length>1)T.push("Multi-day");if(j.callbackOf)T.push("Callback");if(vals(S.jobs).some(x=>x.callbackOf===j.id))T.push("Had a callback");if(q.original&&(q.changes||[]).length)T.push("Changed on site");
   const e=estHrs(q),a=+j.actualHours||0;if(e&&a){if(a>e*1.15)T.push("Ran over estimate");else if(a<e*.85)T.push("Under estimate")}
   if(q.onsite)T.push("Priced on site");if(j.hold&&!j.paidFull)T.push("On hold");if(j.completed&&!j.paidFull)T.push("Balance open");
   const price=qTotals(q).price;T.push(price>=2500?"Job $2,500+":price>=1000?"Job $1,000–2,499":price>=500?"Job $500–999":"Job under $500");
@@ -865,6 +881,7 @@ function vLead(){
   const noMsg=!((consentOf(c,"text")||{}).ok||(consentOf(c,"email")||{}).ok);
   return head(custName(c),`<button data-act="go" data-view="leads">Leads</button> / Lead ${esc(l.leadNo||"")}`,`<span class="pill ${pill}">${LEAD_ST[st]}</span><span class="savestate" id="savestate">All changes saved</span>`)
   +(c.doNotContact?`<div class="banner" style="background:var(--bad-soft);color:var(--bad);border-color:transparent">Do not contact: ${esc(c.dncNote||"see customer record")}</div>`:"")
+  +((st==="new"||st==="scheduled")&&l.visitDate===todayStr()?omwBar("leads",l,c):"")
   +`<div class="cols"><div class="stack">
     <div class="card"><h2>What's next?</h2>${st==="converted"?`<p>This lead became ${l.convertedTo==="job"?"job <b>"+esc(jNo(S.jobs[l.quoteId])||"")+"</b>":"quote <b>"+esc(qNo(q))+"</b>"}${q?` <span class="pill ${q.status}">${ST[q.status]}</span>`:""} on ${fmtT(l.convertedAt)}.</p><div class="row" style="margin-top:10px">${l.convertedTo==="job"&&S.jobs[l.quoteId]?`<button class="btn navy" data-act="go" data-view="job" data-id="${esc(l.quoteId)}">Open job</button>`:""}<button class="btn${l.convertedTo==="job"?"":" navy"}" data-act="go" data-view="quote" data-id="${esc(l.quoteId)}">Open quote</button></div>`
       :st==="closed"?`<p>Closed: <b>${esc(l.closedReason||"no reason")}</b></p><div class="row" style="margin-top:10px"><button class="btn" data-act="leadReopen">Reopen lead</button></div>`
@@ -1059,6 +1076,37 @@ function vJobs(){
     const inner=`${note?`<p class="small muted" style="margin:-4px 0 8px">${note}</p>`:""}${list.length?table(k==="closed"?list.slice(0,30):list):'<p class="small muted">None right now.</p>'}`;
     return k==="closed"?`<details><summary style="cursor:pointer"><h3 style="display:inline;font-size:20px;text-transform:uppercase">${l} <span class="pill">${list.length}</span></h3></summary><div style="margin-top:8px">${inner}</div></details>`:`<div><h3 style="font-size:20px;margin:0 0 8px;text-transform:uppercase">${l} <span class="pill">${list.length}</span></h3>${inner}</div>`}).join("")}</div>`;
 }
+/* ---------- Automatic emails, On my way, time clock ---------- */
+const emailOkC=c=>!!(c&&c.email&&(consentOf(c,"email")||{}).ok===true&&!c.doNotContact);
+const textOkC=c=>!!(c&&c.phone&&(consentOf(c,"text")||{}).ok===true&&!c.doNotContact);
+const hourLbl=h=>(h%12||12)+(h<12?" AM":" PM");
+const clockT=ms=>new Date(ms).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+async function mailFn(body){if(!window.__sb){toast("This works in the online Office.");return null}
+  try{const {data,error}=await window.__sb.functions.invoke("office-mailer",{body});
+    if(error){let m=error.message||"";try{const b=await error.context.json();if(b&&b.error)m=b.error}catch(e){}throw new Error(m)}
+    if(data&&data.error)throw new Error(data.error);return data||{}}
+  catch(e){const m=String(e.message||e);toast("Couldn't send: "+(/failed to send a request|not found|404|fetch/i.test(m)?"the email function isn't set up yet.":m));return null}}
+function autoRemindLine(j,c){if(!window.__sb||!j.scheduledDate||j.completed)return "";
+  if(j.reminder&&j.reminder.at)return `<p class="small" style="color:var(--good);font-weight:600;margin-top:6px">✓ Reminder emailed ${fmtT(j.reminder.at)} at ${clockT(j.reminder.at)} to ${esc(j.reminder.to||"")}</p>`;
+  if(S.settings.autoRemind===false)return `<p class="small muted" style="margin-top:6px">Automatic reminders are turned off in Settings.</p>`;
+  return emailOkC(c)?`<p class="small muted" style="margin-top:6px">📧 A reminder email goes out automatically the day before, around ${hourLbl(+S.settings.remindHour||17)}.</p>`:`<p class="small muted" style="margin-top:6px">No email permission, so no automatic reminder. Call them the day before.</p>`}
+function omwBar(t,r,c){if(!window.__sb&&!textOkC(c))return "";const rec=r.onMyWay;const eOk=emailOkC(c),tOk=textOkC(c);
+  const who=t==="jobs"?(jobCrew(r)[0]||{}).name||"Seth":"Seth";const sms=S.ui.omwSms&&S.ui.omwSms.id===r.id?S.ui.omwSms:null;
+  return `<div class="card" style="margin-bottom:16px;border-left:4px solid var(--accent)"><div class="spread"><div><h2 style="margin:0 0 2px">Heading there?</h2><span class="small muted">Tell ${esc(firstName(c))} ${esc(who)} is on the way.${rec?` <b style="color:var(--good)">Sent at ${clockT(rec.at)} (${rec.minutes} min)</b>`:""}</span></div>
+    <div class="row">${[15,30,45,60].map(m=>`<button class="btn small navy" data-act="omw" data-t="${t}" data-id="${esc(r.id)}" data-m="${m}">${m} min</button>`).join("")}</div></div>
+    <p class="small muted" style="margin-top:6px">${eOk?"Emails "+esc(c.email)+" automatically.":"No email permission."}${tOk?" Then you can send it as a text too.":""}${!eOk&&!tOk?" No text permission either, so give them a call.":""}</p>
+    ${sms?`<a class="btn primary" style="margin-top:8px" href="sms:${esc(digits(c.phone))}?&body=${encodeURIComponent(sms.text)}">💬 Send as a text too</a>`:""}</div>`}
+function clockCard(j){const L=j.timeLog||[];const open=L.find(x=>!x.out);if(!j.scheduledDate&&!L.length)return "";if(j.completed&&!L.length)return "";
+  const tot=L.reduce((a,x)=>a+((x.out||Date.now())-x.in),0)/36e5;const days=new Set(L.map(x=>ymd(new Date(x.in)))).size;
+  return `<div class="card" style="margin-bottom:16px"><div class="spread"><div><h2 style="margin:0 0 2px">Time on this job</h2><span class="small muted">${L.length?`${Math.round(tot*100)/100} hrs logged${days>1?" over "+days+" days":""}${open?" · clocked in since "+clockT(open.in):""}`:"Tap Start when you get there and Stop when you leave. Hours fill in on their own."}</span></div>
+    ${j.completed?"":open?`<button class="btn bad" data-act="clockOut">⏹ Stop work</button>`:`<button class="btn primary" data-act="clockIn">▶ Start work</button>`}</div>
+    ${L.length?`<details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:600">Time log (${L.length})</summary><div class="note-log" style="margin-top:6px">${L.map((x,i)=>`<div class="n spread"><span>${fmtT(x.in)} · ${clockT(x.in)} to ${x.out?clockT(x.out):"now"}${x.out?" · "+Math.round((x.out-x.in)/36e5*100)/100+" hrs":""}${x.by?` <span class="muted">(${esc(String(x.by).split("@")[0])})</span>`:""}</span><button class="btn small bad" data-act="clockDel" data-i="${i}" aria-label="Delete this entry">×</button></div>`).join("")}</div></details>`:""}</div>`}
+function clockTotal(j){return Math.round((j.timeLog||[]).filter(x=>x.out).reduce((a,x)=>a+(x.out-x.in),0)/36e5*100)/100}
+function warrantyCard(j){if(!j.completed)return "";const wm=+S.settings.warrantyMonths||0;const cbs=vals(S.jobs).filter(x=>x.callbackOf===j.id);
+  let until="";if(wm&&j.completedAt){const d=parseD(j.completedAt);d.setMonth(d.getMonth()+wm);until=ymd(d)}
+  return `<div class="card" style="margin-bottom:16px"><div class="spread"><div><h2 style="margin:0 0 2px">Warranty &amp; callbacks</h2><span class="small ${until&&until>=todayStr()?"":"muted"}">${until?(until>=todayStr()?`<b style="color:var(--good)">Under warranty until ${fmtD(until)}</b>`:`Warranty ended ${fmtD(until)}`):"Add your warranty length in Settings to track it here."}</span></div><button class="btn small" data-act="callback">+ Log a callback</button></div>
+    ${cbs.length?`<p class="small" style="margin-top:8px">Callbacks: ${cbs.map(x=>`<button class="linkish" data-act="go" data-view="job" data-id="${esc(x.id)}">${esc(jNo(x))}</button>${x.scheduledDate?" ("+fmtD(x.scheduledDate)+")":""}`).join(", ")}</p>`:""}</div>`}
+function isToday(j){const d=jobDays(j);const t=todayStr();return d.length&&d[0]<=t&&d[d.length-1]>=t}
 function vJob(){
   const j=S.draft;if(!j)return head("Job not found")+`<div class="empty"><button class="linkish" data-act="go" data-view="jobs">Back to Jobs</button></div>`;
   const q=S.quotes[j.quoteId]||{};const c=S.customers[j.customerId]||{};const st=jobStage(j);const mats=(q.internal&&q.internal.materials)||[];
@@ -1072,7 +1120,9 @@ function vJob(){
   +(c.doNotContact?`<div class="banner" style="background:var(--bad-soft);color:var(--bad);border-color:transparent">Do not contact: ${esc(c.dncNote||"see customer record")}</div>`:"")
   +jobTabs()+(S.ui.jtab==="back"?vJobBack(j,q):(""
   +(j.hold&&!j.paidFull?`<div class="banner" style="background:var(--bad-soft);color:var(--bad);border-color:transparent"><b>Charge on hold.</b> Nothing gets invoiced or charged until the hold is released. ${j.holdNote?"Seth's note: “"+esc(j.holdNote)+"”":"Add a note on what needs to change."}</div>`:"")
-  +(q.onsite&&!qTotals(q).price?`<div class="banner" style="background:var(--accent-soft);color:var(--accent);border-color:transparent"><span class="spread"><span><b>Priced on site.</b> Add the price and scope Seth gave the customer so the invoice and payments are right.</span><button class="btn small primary" data-act="go" data-view="quote" data-id="${esc(j.quoteId)}">Add the price</button></span></div>`:"")
+  +(q.onsite&&!q.callbackOf&&!qTotals(q).price?`<div class="banner" style="background:var(--accent-soft);color:var(--accent);border-color:transparent"><span class="spread"><span><b>Priced on site.</b> Add the price and scope Seth gave the customer so the invoice and payments are right.</span><button class="btn small primary" data-act="go" data-view="quote" data-id="${esc(j.quoteId)}">Add the price</button></span></div>`:"")
+  +(j.callbackOf?`<div class="banner" style="background:var(--accent-soft);color:var(--accent);border-color:transparent"><b>Callback</b> for <button class="linkish" data-act="go" data-view="job" data-id="${esc(j.callbackOf)}">${esc(jNo(S.jobs[j.callbackOf])||"the original job")}</button>. Price is $0 unless you add something they're paying for.</div>`:"")
+  +(!j.completed&&isToday(j)?omwBar("jobs",j,c):"")+clockCard(j)+warrantyCard(j)
   +workCard(j,S.quotes[j.quoteId])
   +`<div class="cols"><div class="steps">
     <div class="step ${cls(0)}"><div class="dot">${idx>0?"✓":"1"}</div><div><h3>Order materials <button class="linkish small" data-act="jtab" data-t="back" style="margin-left:8px;text-transform:none">Log a receipt →</button></h3>
@@ -1088,6 +1138,7 @@ function vJob(){
       <div class="msg" id="confirmMsg">${esc(confirmText)}</div>${quietBanner()?`<div style="margin-top:8px">${quietBanner()}</div>`:""}
       <div class="row" style="margin-top:8px"><button class="btn navy small" data-act="copyText" data-src="confirmMsg">Copy for text</button>${c.phone?`<a class="btn small" href="sms:${esc(digits(c.phone))}?&body=${encodeURIComponent(confirmText)}" target="_blank" rel="noopener">Open in text app</a>`:""}<button class="btn small" data-act="emailAppt">Email</button><span class="small muted">${esc(c.phone||"no phone")}${c.email?" · "+esc(c.email):""}</span>${consentPills(c)}</div>
       ${canRemind(c)?"":`<p class="small" style="color:var(--bad);font-weight:600;margin-top:6px">They didn't opt in to texts, email or voicemail, so no reminders or confirmations go out. Call them instead, or record permission on the customer record.</p>`}
+      ${autoRemindLine(j,c)}
       ${j.scheduledDate?`<details style="margin-top:10px"><summary class="small" style="cursor:pointer;font-weight:600">Day-before reminder</summary><div class="msg" id="reminderMsg" style="margin-top:6px">${esc(payText("reminder",j))}</div><div class="row" style="margin-top:6px"><button class="btn small navy" data-act="copyText" data-src="reminderMsg">Copy text</button><button class="btn small" data-act="emailPay" data-kind="reminder">Email</button></div></details>`:""}
       <label class="row small" style="margin-top:8px"><input type="checkbox" data-bind="confirmed" data-rerender="1"${j.confirmed?" checked":""}${j.scheduledDate?"":" disabled"}> Appointment sent by text and email</label>
     </div></div>
@@ -1556,10 +1607,21 @@ ${custs.join("\n")}`;
 /* Settings */
 function vSettings(){
   const s=S.settings;const hasSample=[...vals(S.customers),...vals(S.quotes),...vals(S.jobs)].some(x=>x.sample);
-  return head("Settings")+`<div class="cols"><div class="stack"><div class="card"><h2>Business</h2><div class="grid2">
+  const au=S.automation||{};const lr=au.lastReminders;
+  const autoCard=window.__sb?`<div class="card"><h2>Automatic emails</h2>
+    <label class="row small" style="font-weight:700"><input type="checkbox" id="set-ar"${s.autoRemind!==false?" checked":""}> Email appointment and estimate-visit reminders the day before</label>
+    <div class="grid2" style="margin-top:8px"><label class="f"><span>Send reminders around</span><select id="set-rh">${[12,13,14,15,16,17,18].map(h=>`<option value="${h}"${(+s.remindHour||17)===h?" selected":""}>${hourLbl(h)}</option>`).join("")}</select></label>
+    <label class="f"><span>Weekly backup goes to (Sunday night)</span><input type="text" id="set-bk" value="${esc(s.backupEmail||"")}" placeholder="shaunamilleragency@gmail.com"></label></div>
+    <p class="small muted" style="margin-top:6px">Only customers who said yes to email get reminders. Nothing goes out before 8 AM or after 7 PM Utah time. Click <b>Save settings</b> after changing these.</p>
+    <div class="row" style="margin-top:10px"><button class="btn small" data-act="mailTest">Send me a test email</button><button class="btn small" data-act="mailRemind">Send tomorrow's reminders now</button><button class="btn small" data-act="mailBackup">Email a backup now</button></div>
+    ${lr?`<p class="small" style="margin-top:10px">Last reminders: ${fmtT(lr.at)} at ${clockT(lr.at)}, ${(lr.sent||[]).length} sent${(lr.noPermission||[]).length?", "+lr.noPermission.length+" without email permission":""}${(lr.failed||[]).length?`, <b style="color:var(--bad)">${lr.failed.length} failed</b>`:""}.</p>`:""}
+    ${au.lastBackup?`<p class="small">Last backup: ${fmtT(au.lastBackup.at)} to ${esc((au.lastBackup.to||[]).join(", "))}.</p>`:""}
+    ${au.lastHourly?`<p class="small muted">Automation last checked in ${fmtT(au.lastHourly)} at ${clockT(au.lastHourly)}.</p>`:`<p class="small muted">Automation hasn't checked in yet.</p>`}</div>`:"";
+  return head("Settings")+`<div class="cols"><div class="stack">${autoCard}<div class="card"><h2>Business</h2><div class="grid2">
     <label class="f"><span>Business name (used in messages)</span><input type="text" id="set-company" value="${esc(s.company)}"></label>
     <label class="f"><span>Office phone (used in messages)</span><input type="tel" id="set-phone" value="${esc(s.phone)}"></label>
     <label class="f"><span>Contractor license # (shown on quotes)</span><input type="text" id="set-license" value="${esc(s.license||"")}" placeholder="Add once the B100 is issued"></label>
+    <label class="f"><span>Workmanship warranty (months, blank if none)</span><input type="number" min="0" id="set-wm" value="${esc(s.warrantyMonths||"")}" placeholder="e.g. 12"></label>
     <label class="f"><span>Labor cost per hour (for margins)</span><input type="number" min="0" id="set-rate" value="${esc(s.laborRate)}"></label>
     <label class="f"><span>Default deposit %</span><input type="number" min="0" max="100" id="set-dep" value="${esc(s.defaultDeposit)}"></label>
   </div><label class="f" style="margin-top:12px"><span>Google review link</span><input type="url" id="set-review" value="${esc(s.reviewLink)}" placeholder="https://g.page/r/…/review"></label>
@@ -1752,6 +1814,42 @@ const ACT={
     const id=uid("e");put("expenses",id,{id,date:f.date||todayStr(),amount:amt,vendor:f.vendor.trim(),category:f.category,method:f.method,note:f.note.trim(),receipts:f.receipts,jobId:f.jobId||"",createdAt:Date.now()},{quiet:true});
     S.ui.exp=Object.assign(newExpForm(f.jobId),{fixed:f.fixed,forJob:f.forJob});render();toast("Expense saved"+(f.receipts.length?"":". No receipt attached."))},
   expDel(d){const e=S.expenses[d.id];if(!e)return;confirmBox(`Delete this ${money2(+e.amount||0)} expense${(e.receipts||[]).length?" and its receipt":""}?`,()=>{(e.receipts||[]).forEach(a=>assetsFn&&assetsFn.delete(a.id).catch(()=>{}));remove("expenses",e.id)},"Delete")},
+  async omw(d){const t=d.t,id=d.id;const r=(t==="leads"?S.leads:S.jobs)[id];if(!r)return;const c=S.customers[r.customerId]||{};const m=+d.m;
+    const who=t==="jobs"?(jobCrew(r)[0]||{}).name||"Seth":"Seth";
+    const text=`Hi ${firstName(c)}, ${who} from ${S.settings.company} is on the way and should be there in about ${m} minutes. Questions? Call ${S.settings.phone}.`;
+    let res=null;if(emailOkC(c)&&window.__sb){toast("Sending…");res=await mailFn({action:"onmyway",table:t,id,minutes:m,who})}
+    if(S.draft&&S.draft.id===id){S.draft.onMyWay={at:Date.now(),minutes:m,emailed:!!(res&&res.emailed)};touch();flush()}
+    S.ui.omwSms=textOkC(c)?{id,text}:null;render();
+    if(res&&res.emailed)toast(`Emailed ${firstName(c)}: about ${m} min away`);else if(!emailOkC(c)&&textOkC(c))toast("Tap “Send as a text too” to text them");},
+  clockIn(){const j=S.draft;j.timeLog=(j.timeLog||[]).concat([{in:Date.now(),out:null,by:(window.__me||"")}]);touch();flush();render();toast("Clocked in at "+clockT(Date.now()));
+    hereNow().then(g=>{if(g&&S.draft===j){const e=j.timeLog[j.timeLog.length-1];if(e&&!e.out){e.gps=g;touch();flush()}}})},
+  clockOut(){const j=S.draft;const e=(j.timeLog||[]).find(x=>!x.out);if(!e)return;e.out=Date.now();j.actualHours=clockTotal(j);touch();flush();render();toast(`Clocked out. ${Math.round((e.out-e.in)/36e5*100)/100} hrs this time, ${j.actualHours} total`)},
+  clockDel(d){const j=S.draft;confirmBox("Delete this time entry?",()=>{j.timeLog.splice(+d.i,1);j.actualHours=clockTotal(j)||"";touch();flush();render()},"Delete")},
+  miSave(){const f=S.ui.mi||{};const mi=+f.miles;if(!(mi>0)){toast("Add the miles.");return}if(!f.date){toast("Add the date.");return}
+    const id=uid("m");put("mileage",id,{id,date:f.date,miles:Math.round(mi*10)/10,trip:(f.trip||"").trim(),jobId:f.jobId||"",createdAt:Date.now()},{quiet:true});S.ui.mi={date:f.date,miles:"",trip:"",jobId:""};render();toast("Trip saved")},
+  miDel(d){confirmBox("Delete this trip?",()=>remove("mileage",d.id),"Delete")},
+  callback(){const j=S.draft;const q=S.quotes[j.quoteId]||{};confirmBox(`Create a callback job for ${custName(S.customers[j.customerId])}? It starts at $0 and links back to ${jNo(j)}.`,()=>{flush();
+    const qid=newQuote(j.customerId,q.propertyId,{jobType:q.jobType,request:"Callback for "+jNo(j),status:"won",onsite:true,decidedAt:Date.now(),callbackOf:j.id,depositPct:0,lines:[{desc:"Callback for "+jNo(j)+": ",qty:1,price:0}]});
+    ensureJob(S.quotes[qid],{callbackOf:j.id,noMaterials:true});const c=clone(S.customers[j.customerId]||{});if(c.id){c.log=(c.log||[]).concat([{t:Date.now(),text:"Callback logged on "+jNo(j)}]);put("customers",c.id,c,{quiet:true})}
+    toast("Callback job created. Schedule it like any job.");go("job",qid)},"Create callback")},
+  async bookExport(){const k=($("#bkMonth")||{}).value||lastMonthKey();S.ui.bkMonth=k;const inM=d=>String(d||"").slice(0,7)===k;const r2=n=>Math.round(n*100)/100;
+    const inc=[];vals(S.jobs).filter(j=>!j.sample).forEach(j=>{const q=S.quotes[j.quoteId]||{};const c=S.customers[j.customerId]||{};const base={Customer:custName(c),"Job #":jNo(j),"Job type":q.jobType||""};
+      if(j.depositPaid&&inM(j.depositDate))inc.push(Object.assign({Date:j.depositDate,Type:"Deposit"},base,{"Paid by":j.depositMethod||"",Amount:r2(+j.depositAmt||0)}));
+      if(j.paidFull&&inM(j.fullDate)){const t=qTotals(q);inc.push(Object.assign({Date:j.fullDate,Type:"Final payment"},base,{"Paid by":j.fullMethod||"",Amount:r2(+j.fullAmt||Math.max(0,t.price-(j.depositPaid?(+j.depositAmt||0):0)))}))}});
+    inc.sort((a,b)=>a.Date.localeCompare(b.Date));
+    const ex=vals(S.expenses).filter(e=>!e.sample&&inM(e.date)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const exRows=ex.map(e=>{const o=e.jobId?expJobOpt(e.jobId):null;return {Date:e.date,Vendor:e.vendor||"",Category:e.category||"Uncategorized","Paid with":e.method||"",For:o?o.title.split(" · ").slice(0,2).join(" · "):"Overhead",Note:e.note||"",Amount:r2(+e.amount||0),Receipt:(e.receipts||[]).length?"Attached in Office":"MISSING"}});
+    const mi=vals(S.mileage).filter(m=>!m.sample&&inM(m.date)).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const miRows=mi.map(m=>{const o=m.jobId?expJobOpt(m.jobId):null;return {Date:m.date,Trip:m.trip||"",Job:o?o.title.split(" · ").slice(0,2).join(" · "):"",Miles:+m.miles||0,"IRS rate":mileRate(m.date),"Deduction at IRS rate":r2((+m.miles||0)*mileRate(m.date))}});
+    const byCat={};ex.forEach(e=>{const c=e.category||"Uncategorized";byCat[c]=(byCat[c]||0)+(+e.amount||0)});
+    const incT=inc.reduce((a,x)=>a+x.Amount,0),exT=ex.reduce((a,e)=>a+(+e.amount||0),0),miT=mi.reduce((a,m)=>a+(+m.miles||0),0);
+    const sum=[{Item:"Money received from customers",Amount:r2(incT)},...Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>({Item:"Expense: "+c,Amount:r2(v)})),{Item:"Total expenses",Amount:r2(exT)},{Item:"Miles driven for business",Amount:r2(miT)},{Item:"Mileage deduction at IRS rate (only if you use the standard mileage rate)",Amount:r2(miRows.reduce((a,m)=>a+m["Deduction at IRS rate"],0))},{Item:"Expenses with no receipt",Amount:ex.filter(e=>!(e.receipts||[]).length).length}];
+    await saveBook({Summary:sum,"Money received":inc,Expenses:exRows,Mileage:miRows},`bookkeeper-${k}.xlsx`)},
+  async mailTest(){const r=await mailFn({action:"test"});if(r&&r.ok)toast("Test email sent to "+r.to+". Check that inbox.")},
+  async mailRemind(){toast("Checking tomorrow's schedule…");const r=await mailFn({action:"reminders"});if(!r)return;
+    if(r.skipped){toast(r.skipped);return}
+    toast(`Reminders sent: ${(r.sent||[]).length}${(r.sent||[]).length?" ("+r.sent.join(", ")+")":""}. ${(r.noPermission||[]).length?"No email permission: "+r.noPermission.join(", ")+". ":""}${(r.failed||[]).length?"Failed: "+r.failed.join("; "):""}`)},
+  async mailBackup(){toast("Making the backup…");const r=await mailFn({action:"backup"});if(!r)return;toast(r.skipped?r.skipped:"Backup emailed to "+(r.sent||[]).join(", "))},
   photoShare(d){const j=S.draft;const a=(j.photos||[]).find(x=>x.id===d.id);if(!a)return;a.share=!a.share;touch();flush();render();toast(a.share?"The customer can see this photo":"Photo is private again")},
   photoShareAll(){const j=S.draft;let n=0;(j.photos||[]).forEach(a=>{if((a.kind==="Before"||a.kind==="After")&&!a.share){a.share=true;n++}});touch();flush();render();toast(n?n+" photo"+(n>1?"s":"")+" shared with the customer":"All Before & After photos are already shared")},
   portalInvite(){flush();const c=S.draft;if(!c.email){toast("Add their email address first.");return}emailModal(c,`Your account with ${S.settings.company}`,portalText(c),null)},
@@ -1900,9 +1998,9 @@ const ACT={
   },
   addCheckMat(d){const x=S.draft.review.data.costChecks[+d.i];S.draft.internal=S.draft.internal||{};S.draft.internal.materials=S.draft.internal.materials||[];S.draft.internal.materials.push({item:x.item,vendor:"",link:"",cost:x.estCost||"",ordered:false,eta:""});S.draft.noMaterials=false;touch();render();toast("Added to materials. Check the real cost.")},
   addCheckLine(d){const x=S.draft.review.data[d.k][+d.i];if(S.draft.mode==="flat"){toast("Switch to line items to add this as its own line.");return}S.draft.lines=S.draft.lines||[];S.draft.lines.push({desc:x.item,qty:1,price:(x.price||x.estCost||"")});touch();render();toast("Line added. Set the real price.")},
-  saveSettings(){const L=id=>$("#"+id).value.split("\n").map(x=>x.trim()).filter(Boolean);saveSettings({license:(($("#set-license")||{}).value||"").trim(),company:$("#set-company").value.trim()||DEFAULTS.company,phone:$("#set-phone").value.trim(),laborRate:+$("#set-rate").value||0,defaultDeposit:+$("#set-dep").value||50,reviewLink:$("#set-review").value.trim(),terms:$("#set-terms").value.trim(),jobTypes:L("set-types"),sources:L("set-sources"),vendors:L("set-vendors"),lostReasons:L("set-lost"),expenseCats:L("set-expcats"),requireChangeApproval:!!($("#set-rca")||{}).checked,winbackMonths:Math.max(1,+($("#set-wb")||{}).value||5),followUpDays:Math.max(1,+($("#set-fu")||{}).value||5),dayStart:($("#set-ds")||{}).value||"08:00",dayEnd:($("#set-de")||{}).value||"17:00",visitHrs:+($("#set-vh")||{}).value||1,trendCount:Math.max(2,+($("#set-tc")||{}).value||2),trendDays:Math.max(7,+($("#set-td")||{}).value||90)});toast("Settings saved")},
+  saveSettings(){const L=id=>$("#"+id).value.split("\n").map(x=>x.trim()).filter(Boolean);saveSettings(Object.assign({},S.settings,{autoRemind:$("#set-ar")?$("#set-ar").checked:S.settings.autoRemind,remindHour:$("#set-rh")?+$("#set-rh").value:S.settings.remindHour,backupEmail:$("#set-bk")?$("#set-bk").value.trim():S.settings.backupEmail||"",warrantyMonths:$("#set-wm")?(+$("#set-wm").value||""):S.settings.warrantyMonths||"",license:(($("#set-license")||{}).value||"").trim(),company:$("#set-company").value.trim()||DEFAULTS.company,phone:$("#set-phone").value.trim(),laborRate:+$("#set-rate").value||0,defaultDeposit:+$("#set-dep").value||50,reviewLink:$("#set-review").value.trim(),terms:$("#set-terms").value.trim(),jobTypes:L("set-types"),sources:L("set-sources"),vendors:L("set-vendors"),lostReasons:L("set-lost"),expenseCats:L("set-expcats"),requireChangeApproval:!!($("#set-rca")||{}).checked,winbackMonths:Math.max(1,+($("#set-wb")||{}).value||5),followUpDays:Math.max(1,+($("#set-fu")||{}).value||5),dayStart:($("#set-ds")||{}).value||"08:00",dayEnd:($("#set-de")||{}).value||"17:00",visitHrs:+($("#set-vh")||{}).value||1,trendCount:Math.max(2,+($("#set-tc")||{}).value||2),trendDays:Math.max(7,+($("#set-td")||{}).value||90)}));toast("Settings saved")},
   loadSamples(){loadSamples()},
-  clearSamples(){confirmBox("Remove all example customers, leads, quotes and jobs? Your own records stay.",()=>{["jobs","quotes","leads","expenses","customers"].forEach(k=>vals(S[k]).filter(x=>x.sample).forEach(x=>remove(k,x.id)));toast("Example data removed")},"Remove")},
+  clearSamples(){confirmBox("Remove all example customers, leads, quotes and jobs? Your own records stay.",()=>{["jobs","quotes","leads","expenses","mileage","customers"].forEach(k=>vals(S[k]).filter(x=>x.sample).forEach(x=>remove(k,x.id)));toast("Example data removed")},"Remove")},
   modalCopy(){const t=$("#copyArea");t.focus();t.select();if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.value).then(()=>toast("Copied"),()=>toast("Press Ctrl+C (or ⌘C) to copy"));else toast("Press Ctrl+C (or ⌘C) to copy")},
   closeModal(){$("#modal").hidden=true},
   confirmYes(){const f=confirmBox._f;$("#modal").hidden=true;if(f)f()}

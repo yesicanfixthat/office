@@ -149,7 +149,7 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 
   /* ---------- helpers ---------- */
   function jobDays(j){if(!j.scheduledDate)return [];const out=[];const end=j.endDate&&j.endDate>=j.scheduledDate?j.endDate:j.scheduledDate;
-    let d=parseD(j.scheduledDate),n=0;while(ymd(d)<=end&&n<60){const w=d.getDay();if(!(j.skipWeekends&&(w===0||w===6)))out.push(ymd(d));d.setDate(d.getDate()+1);n++}return out}
+    let d=parseD(j.scheduledDate),n=0;while(ymd(d)<=end&&n<90){const w=d.getDay();if(ymd(d)===j.scheduledDate||j.skipWeekends===false||!(w===0||w===6))out.push(ymd(d));d.setDate(d.getDate()+1);n++}return out}
   function whenText(j){const days=jobDays(j);if(!days.length)return "";
     const time=j.startTime&&j.endTime?`${tm(j.startTime)} to ${tm(j.endTime)}`:j.startTime?`starting at ${tm(j.startTime)}`:"";
     if(days.length===1)return fmtD(days[0])+(time?", "+time:"");
