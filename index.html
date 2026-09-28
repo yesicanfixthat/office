@@ -280,7 +280,7 @@ const DEFAULTS={
   trendCount:2,trendDays:90,
   crew:[{id:"seth",name:"Seth",color:"#36649D"}],
   lostReasons:["Price","Went with someone else","Timing","No response","Doing it themselves","Decided not to do it"],
-  jobTypes:["Doors & Windows","Drywall & Paint","Flooring","Tile & Backsplash","Carpentry & Trim","Mounting & Installs","Fixture Repairs","Outdoor & Fences","Other"],
+  jobTypes:["Multiple repairs","Doors & Windows","Drywall & Paint","Flooring","Tile & Backsplash","Carpentry & Trim","Mounting & Installs","Fixture Repairs","Outdoor & Fences","Other"],
   sources:["Google","Facebook / Nextdoor","Referral","Website","Repeat customer","Other"],
   vendors:["Home Depot","Lowe's","Amazon","Other"],
   laborRate:40, defaultDeposit:50, phone:"(801) 917-4442", reviewLink:"", company:"Yes, I Can Fix That", terms:""
@@ -500,6 +500,17 @@ function tplStrip(q){if(q.status!=="lead")return "";const m=tplMatches(q);
   if(!m.length&&!chk.length)return (q.request||"").trim()?"":`<p class="small muted" style="margin-bottom:10px">Type what the customer asked for and matching templates will show up here.</p>`;
   return `${m.length?`<div class="dupe" style="margin-bottom:12px"><b>Templates that match this request</b>${m.map(x=>`<div class="it"><div><b>${esc(x.t.name)}</b>${x.t.starter?' <span class="pill gray">starter</span>':""}<div class="small muted">Matched: ${x.hits.map(esc).join(", ")} · ${x.t.lines.length} line${x.t.lines.length===1?"":"s"}, ${x.t.materials.length} material${x.t.materials.length===1?"":"s"}${x.t.missed.length?", "+x.t.missed.length+" often-missed items":""}</div></div><button class="btn small primary" data-act="applyTpl" data-id="${esc(x.t.id)}">Fill in</button></div>`).join("")}</div>`:""}
   ${chk.length?`<div class="card" style="margin-bottom:12px;background:var(--warn-soft);border-color:transparent"><div class="small" style="font-weight:700;color:var(--warn);margin-bottom:6px">Don't forget — often missed on this kind of job</div>${chk.map(x=>`<div class="row" style="justify-content:space-between;margin-top:4px;flex-wrap:nowrap"><span class="small">${esc(x.text)}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn small" data-act="chkAdd" data-t="${esc(x.text)}">Add as a line</button><button class="btn small" data-act="chkSkip" data-t="${esc(x.text)}">Not needed</button></span></div>`).join("")}</div>`:""}`}
+function tradeFlags(q){const ELEC=/\b(outlet|receptacle|switch|wir(e|ing)|circuit|breaker|panel|gfci|electrical|light fixture|ceiling fan|fan|recessed|can light|sconce|chandelier)\b/i,PLUMB=/\b(plumb\w*|pipe|piping|supply line|drain|water heater|toilet|sink|faucet|shower valve|gas line|gas)\b/i,
+    NEW=/\b(new|add|adding|added|move|moving|relocat\w*|run|running|extend\w*|install(ing)? new|wire|rewire|hardwire|circuit)\b/i,OK=/\b(replace|replacing|replacement|swap|swapping|existing|repair)\b/i;
+  return (q.lines||[]).map((l,i)=>({l,i})).filter(({l})=>!l.removed&&l.desc).map(({l,i})=>{const d=l.desc;const e=ELEC.test(d),p=PLUMB.test(d);if(!e&&!p)return null;
+    if(/\b(water heater|gas line|gas|panel|breaker|circuit|hvac|furnace|sub-?panel)\b/i.test(d))return {i,d,trade:e?"electrical":"plumbing",always:true};
+    if(OK.test(d)&&!/\b(new (outlet|circuit|line|run)|add(ing)? (an? )?(outlet|circuit)|move|relocat)/i.test(d))return null;
+    if(!NEW.test(d)&&!/\bnew\b/i.test(d))return {i,d,trade:e?"electrical":"plumbing",soft:true};
+    return {i,d,trade:e?"electrical":"plumbing"}}).filter(Boolean)}
+function tradeBanner(q){const f=tradeFlags(q);if(!f.length)return "";const hard=f.filter(x=>!x.soft),soft=f.filter(x=>x.soft);
+  return `<div class="banner" style="margin:12px 0 0;background:var(--warn-soft);color:var(--warn);border-color:transparent"><b>Licensed trade check</b>
+  ${hard.length?`<div style="margin-top:4px">These sound like new ${[...new Set(hard.map(x=>x.trade))].join(" or ")} work (or work that always needs a trade license, like water heaters, gas lines and panels), which needs a licensed ${[...new Set(hard.map(x=>x.trade==="electrical"?"electrician":"plumber"))].join(" or ")} (or a licensed sub). If Seth is only swapping out what's already there, reword the line to say "Replace existing…":</div><ul style="margin:4px 0 0 18px">${hard.map(x=>`<li>Line ${x.i+1}: ${esc(x.d)}</li>`).join("")}</ul>`:""}
+  ${soft.length?`<div style="margin-top:6px">Make sure these are swaps of existing fixtures, not new wiring or new plumbing. Adding "Replace existing" to the wording makes it clear:</div><ul style="margin:4px 0 0 18px">${soft.map(x=>`<li>Line ${x.i+1}: ${esc(x.d)}</li>`).join("")}</ul>`:""}</div>`}
 function tplModal(){const q=S.draft;const first=(q.lines||[]).find(l=>l.desc);const kw=[...words(q.request||"")].slice(0,6);
   const m=$("#modal");m.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-label="Save template"><h2 style="font-size:24px;text-transform:uppercase">Save as a template</h2>
   <p class="small muted">Saves the lines, prices, materials and hours from this quote. Next time a request has these words, it shows up as a match.</p>
@@ -839,7 +850,7 @@ function vPipeline(){
   const q=(S.ui.quoteQ||"").toLowerCase();
   const list=vals(S.quotes).filter(x=>{if(!q)return true;const c=S.customers[x.customerId];return (custName(c)+" "+(x.jobType||"")+" "+(c&&c.phone||"")+" "+(x.quoteNo||"")+" "+((S.jobs[x.id]||{}).jobNo||"")+" "+((S.jobs[x.id]||{}).invoiceNo||"")).toLowerCase().includes(q)});
   const cols=[["lead","Draft"],["sent","Sent"],["won","Approved"],["lost","Lost"]];
-  return head("Quotes",null,`<input type="text" id="quoteSearch" data-ib="quoteQ" placeholder="Search name, phone, job type, Q-/J-/INV- #" value="${esc(S.ui.quoteQ)}" style="width:240px"><button class="btn primary" data-act="go" data-view="intake">+ New lead</button>`)
+  return head("Quotes",null,`<input type="text" id="quoteSearch" data-ib="quoteQ" placeholder="Search name, phone, job type, Q-/J-/INV- #" value="${esc(S.ui.quoteQ)}" style="width:240px"><label class="btn" style="cursor:pointer">Import Excel quote<input type="file" accept=".xlsx,.xls" data-import="xlsx" hidden></label><button class="btn primary" data-act="go" data-view="intake">+ New lead</button>`)
   +`<div class="board">${cols.map(([k,l])=>{const items=list.filter(x=>x.status===k).sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));const tot=items.reduce((s,x)=>s+qTotals(x).price,0);
     return `<div class="colm"><h3>${l} <span class="num">${items.length}${k!=="lead"?" · "+money(tot):""}</span></h3>${items.length?items.map(x=>{const c=S.customers[x.customerId];const arch=c&&c.archived;return `<button class="qcard${arch?" archived":""}" data-act="go" data-view="quote" data-id="${x.id}"><span class="n">${x.quoteNo?`<span class="small muted num">${esc(x.quoteNo)}</span> `:""}${esc(custName(c))}${arch?' <span class="pill gray">Archived</span>':""}${x.sample?' <span class="pill">Example</span>':""}</span><span class="m"><span>${esc(x.jobType||"No job type")}</span><span class="num">${qTotals(x).price?money(qTotals(x).price):""}</span></span><span class="m"><span>${k==="lead"?"came in "+ago(x.createdAt):k==="sent"?"sent "+ago(x.sentAt):k==="lost"?esc(x.lostReason||"no reason"):"deposit paid "+ago(x.decidedAt)+(S.jobs[x.id]?"":" · not scheduled")}</span>${k==="lost"?`<span class="pill ${(!x.followUp||x.followUp==="none")?"lost":"won"}">${(!x.followUp||x.followUp==="none")?"No follow-up":"Followed up"}</span>`:""}</span></button>`}).join(""):`<div class="small muted" style="padding:6px">None</div>`}</div>`}).join("")}</div>`;
 }
@@ -871,9 +882,9 @@ function vQuote(){
       <div id="tplBox">${tplStrip(q)}</div>
       <div class="spread" style="margin-bottom:8px"><div class="seg" role="group" aria-label="Pricing"><button aria-pressed="${q.mode!=="flat"}" data-act="mode" data-mode="lines">Line items</button><button aria-pressed="${q.mode==="flat"}" data-act="mode" data-mode="flat">Flat rate</button></div></div>
       ${q.mode==="flat"?`<div class="grid2"><label class="f"><span>Flat price</span><input type="number" min="0" step="1" data-bind="flatPrice" value="${esc(q.flatPrice||"")}"></label><label class="f"><span>Scope (shown to customer)</span><input type="text" data-bind="flatScope" value="${esc(q.flatScope||"")}" placeholder="e.g. Replace 3 interior door slabs, hardware included"></label></div>`
-      :`<div class="tablewrap"><table><thead><tr><th style="width:60px">Step</th><th>Description</th><th class="r" style="width:66px">Qty</th><th class="r" style="width:96px">Unit price</th><th class="r" style="width:100px">Total</th><th style="width:40px"></th></tr></thead><tbody>
+      :`<div class="tablewrap"><table><thead><tr><th style="width:60px">Step</th><th>Description</th><th class="r" style="width:78px">Qty</th><th class="r" style="width:96px">Unit price</th><th class="r" style="width:100px">Total</th><th style="width:40px"></th></tr></thead><tbody>
         ${lines.map((l,i)=>`<tr data-line-row="${i}"${l.removed?' style="opacity:.45" title="Removed on site from the job page"':""}><td style="white-space:nowrap"><span class="drag" draggable="true" data-line-drag="${i}" title="Drag to reorder" aria-hidden="true">⋮⋮</span><b class="num small" style="margin:0 4px">${i+1}</b><span class="mv"><button class="linkish small" data-act="moveLine" data-i="${i}" data-dir="-1" aria-label="Move step ${i+1} up"${i===0?" disabled":""}>▲</button><button class="linkish small" data-act="moveLine" data-i="${i}" data-dir="1" aria-label="Move step ${i+1} down"${i===lines.length-1?" disabled":""}>▼</button></span></td><td><input type="text" data-bind="lines.${i}.desc" value="${esc(l.desc||"")}" placeholder="Work description"></td><td><input type="number" min="0" step="0.5" data-bind="lines.${i}.qty" value="${esc(l.qty)}" style="text-align:right"></td><td><input type="number" min="0" step="1" data-bind="lines.${i}.price" value="${esc(l.price)}" style="text-align:right"></td><td class="r num" data-line="${i}">${money2((+l.qty||0)*(+l.price||0))}</td><td><button class="btn small bad" data-act="rmLine" data-i="${i}" aria-label="Remove line">×</button></td></tr>`).join("")}
-        </tbody></table></div><div style="margin-top:8px"><button class="btn small" data-act="addLine">+ Add line</button></div>`}
+        </tbody></table></div><div style="margin-top:8px"><button class="btn small" data-act="addLine">+ Add line</button></div><div id="tradeBox">${tradeBanner(q)}</div>`}
       <div class="grid2" style="margin-top:14px">
         <label class="f"><span>Deposit % (50% minimum unless noted)</span><input type="number" min="0" max="100" step="5" data-bind="depositPct" value="${esc(q.depositPct||S.settings.defaultDeposit)}"></label>
         <label class="f"><span>Reason if deposit is under 50%</span><input type="text" data-bind="depositNote" value="${esc(q.depositNote||"")}" placeholder="Only needed if lower"></label>
@@ -1330,6 +1341,41 @@ function vMonthReport(){
   </div>
   <div class="card"><h2>Last 12 months</h2><div class="tablewrap"><table><thead><tr><th>Month</th><th class="r">Jobs done</th><th class="r">Value</th><th class="r">Est. profit</th><th class="r">Margin</th><th style="min-width:140px"></th></tr></thead><tbody>${hist.slice().reverse().map(h=>`<tr class="click" data-act="repMonthPick" data-k="${h.k}" tabindex="0"${h.k===k?' style="background:var(--accent-soft)"':""}><td>${mLabel(h.k)}</td><td class="r num">${h.s.n}</td><td class="r num">${money(h.s.price)}</td><td class="r num">${money(h.s.profit)}</td><td class="r num">${h.s.price?pct(h.s.profit/h.s.price*100):"—"}</td><td><div style="height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:${h.s.price/maxH*100}%;background:var(--mid)"></i></div></td></tr>`).join("")}</tbody></table></div><p class="small muted" style="margin-top:8px">Counted by the date the job was marked complete. Click a month to see its jobs.</p></div>`;
 }
+/* ---------- Import a quote from Seth's Excel sheet ---------- */
+function loadXLSX(){return new Promise((res,rej)=>{if(window.XLSX)return res();const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
+function parseSethQuote(wb){
+  const ws=wb.Sheets[wb.SheetNames.find(n=>/quote/i.test(n))||wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+  const txt=v=>String(v==null?"":v).trim();
+  const find=(label,after)=>{for(let r=after||0;r<rows.length;r++){const row=rows[r];for(let c=0;c<row.length;c++){if(txt(row[c]).toLowerCase()===label.toLowerCase()){for(let k=c+1;k<row.length;k++)if(txt(row[k]))return {v:row[k],r};return {v:"",r}}}}return {v:"",r:-1}};
+  const client=find("CLIENT INFORMATION").r;const from=client>=0?client:0;
+  const q={quoteNo:txt(find("Quote #:").v).replace(/\.0$/,""),name:txt(find("Name:",from).v),phone:txt(find("Phone:",from).v),email:txt(find("Email:",from).v),address:txt(find("Address:",from).v),csz:txt(find("City, St, Zip:",from).v),lines:[]};
+  let h=rows.findIndex(r=>/item\s*\/\s*service/i.test(txt(r[0])));
+  for(let r=h+1;h>=0&&r<rows.length;r++){const row=rows[r];if(/^total$/i.test(txt(row[3]))||/^total$/i.test(txt(row[0])))break;const d=txt(row[0]);if(!d)continue;
+    q.lines.push({desc:d,cat:txt(row[1]),qty:+row[2]||1,price:+row[3]||0})}
+  const nw=wb.Sheets[wb.SheetNames.find(n=>/note/i.test(n))||""];
+  if(nw){XLSX.utils.sheet_to_json(nw,{header:1,raw:true,defval:""}).forEach(r=>{const k=txt(r[0]).toLowerCase(),v=r[1];if(/labor/.test(k))q.hours=parseFloat(String(v))||"";if(/material/.test(k))q.matTotal=parseFloat(String(v).replace(/[$,]/g,""))||0;if(/timeline/.test(k))q.timeline=txt(v)})}
+  const m=q.csz.match(/^(.*?),\s*([A-Z]{2})?,?\s*(\d{5})?/i);q.town=m?m[1].trim():q.csz;q.zip=(q.csz.match(/\b\d{5}\b/)||[""])[0];
+  return q}
+async function importExcelQuote(file){
+  try{await loadXLSX()}catch(e){toast("Couldn't load the spreadsheet reader. Check your connection.");return}
+  let q;try{const buf=await file.arrayBuffer();q=parseSethQuote(XLSX.read(buf,{type:"array"}))}catch(e){toast("Couldn't read that file. Is it an Excel quote?");return}
+  if(!q.lines.length){toast("No line items found in that sheet.");return}
+  const now=Date.now();const digitsP=digits(q.phone);const em=q.email.toLowerCase();
+  let c=vals(S.customers).find(x=>(em&&(x.email||"").toLowerCase()===em)||(digitsP&&digits(x.phone)===digitsP));
+  const parts=q.name.split(/\s+/);const first=parts.shift()||"";const last=parts.join(" ");
+  let pid;
+  if(!c){const cid=uid("c");pid=uid("p");c={id:cid,type:"Homeowner",company:"",first,last,phone:q.phone,email:q.email,source:"",referredBy:"",properties:[{id:pid,address:q.address,town:q.town,zip:q.zip,label:"",onsiteName:"",onsitePhone:"",notes:""}],log:[{t:now,text:"Added from Excel quote "+(q.quoteNo?"#"+q.quoteNo:"")}],createdAt:now};put("customers",cid,c,{quiet:true})}
+  else{c=clone(c);const p=(c.properties||[]).find(x=>(x.address||"").toLowerCase()===q.address.toLowerCase());if(p)pid=p.id;else{pid=uid("p");c.properties=(c.properties||[]).concat([{id:pid,address:q.address,town:q.town,zip:q.zip,label:"",onsiteName:"",onsitePhone:"",notes:""}]);put("customers",c.id,c,{quiet:true})}}
+  const qno=q.quoteNo?("Q-"+q.quoteNo):nextNo("quote");
+  if(vals(S.quotes).some(x=>x.quoteNo===qno)&&!confirm(`Quote ${qno} is already in the Office. Import it again as a new quote?`))return;
+  const matLines=q.lines.filter(l=>/^materials?$/i.test(l.cat));const matBilled=matLines.reduce((a,l)=>a+l.qty*l.price,0);
+  const lid=uid("l");
+  const id=newQuote(c.id,pid,{quoteNo:vals(S.quotes).some(x=>x.quoteNo===qno)?nextNo("quote"):qno,jobType:"",request:"Imported from Seth's Excel quote ("+file.name+").",leadId:lid,
+    lines:q.lines.map(l=>({desc:l.desc,qty:l.qty,price:l.price,cat:l.cat})),
+    internal:{hours:q.hours||"",crew:1,who:"Seth",materials:q.matTotal?[{item:"Materials (Seth's total estimate"+(matBilled?", "+money(matBilled)+" billed as separate lines":"")+")",vendor:"",link:"",cost:q.matTotal,ordered:false,eta:""}]:[],notes:[q.timeline?"Projected timeline: "+q.timeline:"",q.hours?"Total labor: "+q.hours+" hours":""].filter(Boolean).join("\n")}});
+  put("leads",lid,{id:lid,leadNo:nextNo("lead"),customerId:c.id,propertyId:pid,jobType:"",request:"Excel quote "+(q.quoteNo?"#"+q.quoteNo:""),timing:"",via:"Office",status:"converted",convertedTo:"quote",quoteId:id,convertedAt:now,visitDate:"",visitTime:"",closedReason:"",notes:"",createdAt:now,updatedAt:now},{quiet:true});
+  toast(`Imported ${q.lines.length} lines for ${q.name}. Pick a job type and check the permission to contact.`);go("quote",id)}
 async function saveBook(sheets,name){
   const load=()=>new Promise((res,rej)=>{if(window.XLSX)return res();const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)});
   try{await load();const wb=XLSX.utils.book_new();Object.entries(sheets).forEach(([n,rows])=>{const ws=rows.length?XLSX.utils.json_to_sheet(rows):XLSX.utils.aoa_to_sheet([["No records"]]);XLSX.utils.book_append_sheet(wb,ws,n)});
@@ -1802,6 +1848,7 @@ function onField(e){
   if(el.dataset.jl!=null){if(e.type!=="change")return;const j=S.draft;const [i,f]=el.dataset.jl.split(".");const cur=(S.quotes[j.quoteId].lines||[])[+i];if(!cur)return;const v=f==="desc"?el.value:el.value===""?"":+el.value;if(String(cur[f])===String(v))return;
     const before=(+cur.qty||0)*(+cur.price||0);editJobQuote(j,q=>{const x=q.lines[+i];if(f!=="desc"&&!x.added&&x.was==null)x.was=before;x[f]=v;if(x.was!=null&&Math.abs((+x.qty||0)*(+x.price||0)-x.was)<.005)delete x.was},cur.added&&!cur.desc&&f==="desc"?`Added on site: ${v}`:f==="desc"?`Renamed line ${+i+1} to "${v}"`:`Line ${+i+1} (${cur.desc||"item"}) ${f==="qty"?"quantity":"price"}: ${cur[f]} → ${v}`);return}
   if(el.dataset.upload){if(e.type==="change")onUpload(el);return}
+  if(el.dataset.import){if(e.type==="change"&&el.files&&el.files[0]){const f=el.files[0];el.value="";importExcelQuote(f)}return}
   if(el.id==="photoKind"){S.ui.photoKind=el.value;return}
   if(el.dataset.tplkw!=null){if(e.type!=="change")return;const id=el.dataset.tplkw;const kw=el.value.split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);const saved=clone(S.settings.templates||[]);let t=saved.find(x=>x.id===id);if(!t){const st=STARTER_TPL.find(x=>x.id===id);if(!st)return;t=Object.assign(clone(st),{starter:false,name:st.name});saved.push(t)}t.keywords=kw;saveSettings(Object.assign({},S.settings,{templates:saved}));return}
   if(el.dataset.crew!=null){if(e.type!=="change")return;const [i,f]=el.dataset.crew.split(".");const L=clone(crewList());if(!L[+i])return;L[+i][f]=f==="name"?(el.value.trim()||L[+i].name):el.value;saveSettings(Object.assign({},S.settings,{crew:L}));return}
@@ -1837,6 +1884,7 @@ function onField(e){
   if(el.dataset.bind==="paidFull"&&v&&!S.draft.fullDate)S.draft.fullDate=todayStr();
   if(el.dataset.bind==="scheduledDate"){S.draft.confirmed=false;if(!S.draft.endDate||S.draft.endDate<S.draft.scheduledDate)S.draft.endDate=S.draft.scheduledDate;if(S.draft.scheduledDate&&!S.draft.startTime){const sg=suggestTimes(S.quotes[S.draft.quoteId]);S.draft.startTime=sg.startTime;S.draft.endTime=sg.endTime;S.draft.endDate=endForDays(S.draft.scheduledDate,sg.workDays,S.draft.skipWeekends)}}
   if(["endDate","startTime","endTime","skipWeekends"].includes(el.dataset.bind)&&S.draftColl==="jobs")S.draft.confirmed=false;
+  if(/^lines\.\d+\.desc$/.test(el.dataset.bind||"")&&S.view.name==="quote"){const tb=$("#tradeBox");if(tb)tb.innerHTML=tradeBanner(S.draft)}
   if((el.dataset.bind==="request"||el.dataset.bind==="jobType")&&S.view.name==="quote"){const box=$("#tplBox");if(box)box.innerHTML=tplStrip(S.draft)}
   if(el.dataset.bind==="lostOther"){S.draft.lostReasons=lostList(S.draft);S.draft.lostReason=lostSummary(S.draft)}
   if(S.draftColl==="leads"&&el.dataset.bind==="visitDate"){if(v&&S.draft.status==="new")S.draft.status="scheduled";if(!v&&S.draft.status==="scheduled")S.draft.status="new";S.draft.visitSent=false}
