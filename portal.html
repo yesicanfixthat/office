@@ -100,7 +100,7 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   const fmtT=ms=>ms?new Date(+ms).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}):"";
   const tm=t=>{if(!t)return "";const [h,m]=t.split(":").map(Number);return (h%12||12)+(m?":"+String(m).padStart(2,"0"):"")+(h<12?" AM":" PM")};
   const today=ymd(new Date());
-  const JOB_TYPES=["Multiple repairs","Doors & Windows","Drywall & Paint","Flooring","Tile & Backsplash","Carpentry & Trim","Mounting & Installs","Fixture Repairs","Outdoor & Fences","Other"];
+  const JOB_TYPES=["Multiple repairs","Doors & Windows","Drywall & Paint","Flooring","Tile & Backsplash","Carpentry & Trim","Mounting & Installs","Toilet repair","Small appliance repair","Private lesson (you do it, Seth teaches)","Group class","Outdoor & Fences","Other"];
   const CH={call:["Phone calls","We call to follow up on quotes and set up visits."],text:["Text messages","Appointment reminders and the occasional check-in."],email:["Email","Quotes, receipts and appointment confirmations."],vm:["Recorded voicemail","A short recorded message instead of a live call."]};
   let ME=null,SESSION=null,TAB="home",codeEmail="",busy=false;
   const URLS={};
@@ -178,7 +178,7 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     if(quotes.length)h+=quotes.map(q=>`<div class="card"><div class="spread"><div><h2>Quote ${esc(q.quoteNo||"")}</h2><div class="small muted">${esc(q.jobType||"")}${q.property&&q.property.address?" · "+esc(addr(q.property)):""}</div></div>${q.signed?'<span class="pill good">Signed</span>':'<span class="pill warn">Waiting for you</span>'}</div>
       <p style="margin:8px 0">Total <b>${money(q.total)}</b> · deposit to schedule <b>${money(q.deposit)}</b></p>
       ${q.signed?`<p class="small muted">You signed this on ${fmtT(q.signed.at)}. We'll be in touch about your deposit and scheduling.</p>`:`<button class="btn primary" data-act="signQuote" data-id="${esc(q.id)}">Review &amp; sign</button>`}</div>`).join("");
-    if(upcoming.length||visits.length)h+=`<div class="card"><h2>Coming up</h2>${visits.map(r=>`<p><b>Estimate visit: ${fmtD(r.visitDate)}${r.visitTime?", around "+esc(r.visitTime):""}</b><br><span class="small muted">Seth will look at your ${esc((r.jobType||"project").toLowerCase())} and put together a quote.</span></p>`).join("")}
+    if(upcoming.length||visits.length)h+=`<div class="card"><h2>Coming up</h2>${visits.map(r=>`<p><b>Quote visit: ${fmtD(r.visitDate)}${r.visitTime?", around "+esc(r.visitTime):""}</b><br><span class="small muted">Seth will look at your ${esc((r.jobType||"project").toLowerCase())} and put together a quote.</span></p>`).join("")}
       ${upcoming.map(j=>`<p><b>${esc(whenText(j))}</b><br>${esc((j.quote&&j.quote.jobType)||"Your job")}${j.quote&&j.quote.property?" at "+mapLink(j.quote.property):""}</p>`).join("")}
       <p class="small muted">Need to change a time? Call <a href="tel:8019174442">${esc(ME.business.phone)}</a>.</p></div>`;
     if(unsched.length)h+=`<div class="card"><h2>Getting scheduled</h2>${unsched.map(j=>`<p>${esc((j.quote&&j.quote.jobType)||"Your job")} (${esc(j.jobNo||"")}). We'll reach out with a date soon.</p>`).join("")}</div>`;
@@ -215,7 +215,7 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   function vPrefs(){return `<h1>How we contact you</h1>`+ME.customers.map(c=>`<div class="card">${ME.customers.length>1?`<h3>${esc(c.company||[c.first,c.last].filter(Boolean).join(" "))}</h3>`:""}
       <p class="small muted">Phone ${esc(c.phone||"not on file")} · Email ${esc(c.email||"")}. To change these, call <a href="tel:8019174442">${esc(ME.business.phone)}</a>.</p>
       ${Object.keys(CH).map(ch=>{const v=c.consent&&c.consent[ch];return `<div class="consent"><div><b>${CH[ch][0]}</b><div class="small muted">${CH[ch][1]}</div></div><div class="seg" role="group" aria-label="${CH[ch][0]}"><button aria-pressed="${v===true}" data-act="consent" data-c="${esc(c.id)}" data-ch="${ch}" data-v="1">Yes</button><button aria-pressed="${v===false}" data-act="consent" data-c="${esc(c.id)}" data-ch="${ch}" data-v="0">No</button></div></div>`}).join("")}
-      <p class="small muted" style="margin-top:10px">If you choose No for texts, calls and email, we can't send appointment reminders or confirmations. You can change this anytime.</p></div>`).join("")}
+      <p class="small muted" style="margin-top:10px">If you choose No for texts, calls and email, we can't send appointment reminders or confirmations. You can change this anytime. <a href="https://yesicanfixthat.github.io/Utah/privacy.html" target="_blank" rel="noopener">Privacy policy</a>.</p></div>`).join("")}
   function vReceipt(j){const q=j.quote||{};const c=ME.customers[0]||{};const b=ME.business;
     return `<div class="receipt" id="receipt"><div class="card"><img src="logo.png" alt="" style="height:56px"><p>${esc(b.company)} · ${esc(b.phone)}${b.license?" · License #"+esc(b.license):""}</p>
       <h2>Receipt · ${esc(j.jobNo||"")}</h2><p>${esc([c.first,c.last].filter(Boolean).join(" ")||c.company||"")}<br>${esc(addr(q.property))}<br>${j.completed?"Completed "+fmtD(j.completedAt):esc(whenText(j))}</p>

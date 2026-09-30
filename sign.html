@@ -73,12 +73,14 @@ input[type=text]{width:100%;font-size:18px;padding:10px 12px;border:1px solid va
       ${q.customerNotes?`<p style="margin-top:12px;white-space:pre-wrap">${esc(q.customerNotes)}</p>`:""}</div>`}
   function render(q){
     app.innerHTML=header(q)+quoteCard(q)+`
+    ${q.agreement?`<div class="card"><h2>${/^group/i.test(q.agreement)?"Group class agreement":"Lesson agreement"}</h2><div class="terms">${esc(q.agreement.replace(/^(Lesson agreement|Group class agreement)\s*\n/,""))}</div>
+      <label class="agree"><input type="checkbox" id="ag2"><span>${/^group/i.test(q.agreement)?"I understand attendees do their own hands-on practice while Seth teaches, and that each attendee signs the class sign-in and waiver sheet.":"I understand I am doing this work myself on my own home, and Seth is teaching me."}</span></label></div>`:""}
     <div class="card"><h2>Terms &amp; conditions</h2>${q.terms?`<div class="terms">${esc(q.terms)}</div>`:`<p class="small">No additional terms.</p>`}</div>
     <div class="card"><h2>Accept this quote</h2>
       <label class="f" for="nm">Type your full name</label><input type="text" id="nm" autocomplete="name" value="${esc([q.customer&&q.customer.first,q.customer&&q.customer.last].filter(Boolean).join(" "))}">
       <label class="f">Sign with your finger or mouse</label>
       <div class="pad"><canvas id="cv"></canvas><span class="hint" id="hint">Sign here</span></div><button class="clear" id="clr" type="button">Clear signature</button>
-      <label class="agree"><input type="checkbox" id="ag"><span>I have read and agree to this quote and the terms &amp; conditions above. I understand that typing my name and signing is my electronic signature.</span></label>
+      <label class="agree"><input type="checkbox" id="ag"><span>I have read and agree to this quote${q.agreement?", the agreement":""} and the terms &amp; conditions above. I understand that typing my name and signing is my electronic signature.</span></label>
       <button class="btn" id="go" type="button">Accept &amp; sign</button><div class="err" id="er" role="alert"></div>
       <p class="small" style="margin-top:10px">We record the date, time and device when you sign, along with a copy of this quote.</p></div>`;
     const cv=document.getElementById("cv"),ctx=cv.getContext("2d");let drawing=false,inked=false,last=null;
@@ -93,6 +95,7 @@ input[type=text]{width:100%;font-size:18px;padding:10px 12px;border:1px solid va
       const name=document.getElementById("nm").value.trim(),ag=document.getElementById("ag").checked;
       if(name.length<3){er.textContent="Please type your full name.";return}
       if(!inked){er.textContent="Please sign in the box.";return}
+      if(q.agreement&&!document.getElementById("ag2").checked){er.textContent="Please check the box in the "+(/^group/i.test(q.agreement)?"group class":"lesson")+" agreement.";return}
       if(!ag){er.textContent="Please check the box to agree to the terms.";return}
       const btn=document.getElementById("go");btn.disabled=true;btn.textContent="Saving…";
       // white background so the signature image is readable anywhere
